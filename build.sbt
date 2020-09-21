@@ -11,6 +11,18 @@ val res = Seq(
 )
 
 
+resolvers ++= res
+
+lazy val root = (project in file("."))
+  .aggregate(
+    `jooq-async-api`,
+    `jooq-async-api-tck`,
+    `jooq-async-jdbc`,
+    `jooq-async-reactive`
+  )
+  .enablePlugins(NoPublish, GitVersioning, GitBranchPrompt)
+  .disablePlugins(BintrayPlugin)
+
 lazy val `jooq-async-api` = project
   .settings(publishCommonsSettings: _*)
 
