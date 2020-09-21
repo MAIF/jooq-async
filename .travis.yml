@@ -1,0 +1,24 @@
+sudo: false
+language: scala
+services:
+- docker
+scala: 2.12.12
+jdk: openjdk8
+before_install:
+- docker-compose -f docker-compose.test.yml rm -f
+- docker-compose -f docker-compose.test.yml up -d
+script:
+- sh ./build.sh
+after_failure:
+- docker-compose -f docker-compose.test.yml logs
+- docker-compose -f docker-compose.test.yml stop
+after_success:
+- docker-compose -f docker-compose.test.yml stop
+before_cache:
+- find $HOME/.ivy2 -name "ivydata-*.properties" -print -delete
+- find $HOME/.sbt  -name "*.lock"               -print -delete
+cache:
+  directories:
+  - "$HOME/.ivy2/cache"
+  - "$HOME/.sbt/boot"
+  - "$HOME/.sbt"
