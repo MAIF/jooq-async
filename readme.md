@@ -4,9 +4,8 @@
 
 [travis]:               https://travis-ci.org/MAIF/jooq-async
 [travis-badge]:         https://travis-ci.org/MAIF/jooq-async.svg?branch=master
-[jar]:                  https://bintray.com/maif-jooq-async/binaries/jooq-async-api.jar/_latestVersion
-[jar-badge]:            https://api.bintray.com/packages/maif-jooq-async/binaries/jooq-async-api.jar/images/download.svg
-
+[jar]:                  https://bintray.com/maif-jooq-async/maven/jooq-async-api/_latestVersion
+[jar-badge]:            https://api.bintray.com/packages/maif-jooq-async/maven/jooq-async-api/images/download.svg
 
 This API is a solution to use jooq with reactive client for RDBMS.  
 
