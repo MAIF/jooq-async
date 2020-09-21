@@ -11,7 +11,6 @@ val res = Seq(
 )
 
 
-
 lazy val `jooq-async-api` = project
   .settings(publishCommonsSettings: _*)
 
@@ -51,7 +50,7 @@ lazy val githubRepo = "maif/jooq-async"
 
 lazy val publishCommonsSettings = Seq(
   homepage := Some(url(s"https://github.com/$githubRepo")),
-  startYear := Some(2018),
+  startYear := Some(2020),
   bintrayOmitLicense := true,
   crossPaths := false,
   scmInfo := Some(
@@ -61,6 +60,7 @@ lazy val publishCommonsSettings = Seq(
       Some(s"scm:git:git@github.com:$githubRepo.git")
     )
   ),
+  licenses := Seq(("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0"))),
   developers := List(
     Developer("alexandre.delegue", "Alexandre Delègue", "", url(s"https://github.com/larousso")),
     Developer("benjamin.cavy", "Benjamin Cavy", "", url(s"https://github.com/ptitFicus")),
