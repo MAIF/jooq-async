@@ -4,11 +4,28 @@ services:
 - docker
 scala: 2.12.12
 jdk: openjdk8
-before_install:
-- docker-compose -f docker-compose.test.yml rm -f
-- docker-compose -f docker-compose.test.yml up -d
-script:
-- sh ./build.sh
+
+script: echo "No default script"
+
+stages:
+  # runs on develop, master commits and PRs
+  - name: test_compile
+    if: NOT tag =~ ^v
+  - name: publish
+    if: tag =~ ^v
+
+jobs:
+  include:
+    - stage: test_compile
+      name: "Run unit test"
+      before_install: docker-compose -f docker-compose.test.yml up -d
+      script:
+        - sbt -J-XX:ReservedCodeCacheSize=128m ++$TRAVIS_SCALA_VERSION  -Dsbt.color=always -Dsbt.supershell=false test
+    - stage: publish
+      name: "Pusblish to bintray"
+      script:
+        - sbt -J-Xmx2G -J-Xss20M -J-XX:ReservedCodeCacheSize=128m ++$TRAVIS_SCALA_VERSION  -Dsbt.color=always -Dsbt.supershell=false "publish"
+
 after_failure:
 - docker-compose -f docker-compose.test.yml logs
 - docker-compose -f docker-compose.test.yml stop
