@@ -85,6 +85,9 @@ Future<Integer> insertResult = reactivePgAsyncPool.inTransaction(t ->
 
 #### Batch statements
 
+With this version you can send a statement once and then send all parameters. 
+This version is the most performant if you have one statement with multiple values. 
+
 ```java
 List<String> names = List.range(0, 10).map(i -> "name-" + i);
 Future<Long> batchResult = reactivePgAsyncPool.executeBatch(
@@ -93,7 +96,7 @@ Future<Long> batchResult = reactivePgAsyncPool.executeBatch(
 );
 ```
 
-Or 
+With this version, you can batch a set of statements. You should use this version if your statements are all different. 
 
 ```java
 List<String> names = List.range(0, 10).map(i -> "name-" + i);
