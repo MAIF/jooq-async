@@ -15,6 +15,26 @@ At the moment there is 2 implementations :
  * a blocking jdbc implementation 
  * a vertx reactive implementation for postgresql only 
 
+## Import
+
+Jcenter hosts this library.
+
+### Maven
+
+```xml
+<dependency>
+    <groupId>fr.maif</groupId>
+    <artifactId>functional-json</artifactId>
+    <version>${VERSION}</version>
+</dependency>
+```
+
+### Gradle
+
+```gradle
+implementation 'fr.maif:functional-json:1.0.0-${VERSION}'
+```
+
 ## The API 
 
 ### Create a pool 
