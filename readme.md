@@ -7,11 +7,11 @@
 [jar]:                  https://bintray.com/maif-jooq-async/maven/jooq-async-api/_latestVersion
 [jar-badge]:            https://api.bintray.com/packages/maif-jooq-async/maven/jooq-async-api/images/download.svg
 
-This API is a solution to use jooq with reactive client for RDBMS.  
+This API is a solution to use jooq with reactive clients for RDBMS.  
 
 ## Implementations 
 
-At the moment there is 2 implementations : 
+At the moment there are 2 implementations: 
  * a blocking jdbc implementation 
  * a vertx reactive implementation for postgresql only 
 
@@ -23,16 +23,32 @@ Jcenter hosts this library.
 
 ```xml
 <dependency>
-    <groupId>fr.maif</groupId>
-    <artifactId>functional-json</artifactId>
-    <version>${VERSION}</version>
+  <groupId>fr.maif</groupId>
+  <artifactId>jooq-async-jdbc</artifactId>
+  <version>1.0.0</version>
 </dependency>
 ```
+
+OR
+
+```xml
+<dependency>
+  <groupId>fr.maif</groupId>
+  <artifactId>jooq-async-reactive</artifactId>
+  <version>1.0.0</version>
+</dependency>
+``` 
 
 ### Gradle
 
 ```gradle
-implementation 'fr.maif:functional-json:1.0.0-${VERSION}'
+implementation 'fr.maif:jooq-async-api:1.0.0'
+```
+
+OR
+
+```gradle
+implementation 'fr.maif:jooq-async-reactive:1.0.0'
 ```
 
 ## The API 
