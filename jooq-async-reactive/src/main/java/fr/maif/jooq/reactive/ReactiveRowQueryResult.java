@@ -5,6 +5,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.Row;
 import org.jooq.*;
+import org.jooq.Record;
 import org.jooq.tools.Convert;
 
 import java.util.Arrays;

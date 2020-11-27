@@ -7,7 +7,6 @@ import io.vertx.pgclient.PgPool;
 import io.vertx.sqlclient.PoolOptions;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DefaultConfiguration;
-import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 

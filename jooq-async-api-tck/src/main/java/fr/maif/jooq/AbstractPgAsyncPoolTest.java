@@ -15,6 +15,7 @@ import io.vavr.collection.Map;
 import io.vavr.concurrent.Future;
 import io.vavr.control.Option;
 import org.jooq.*;
+import org.jooq.Record;
 import org.jooq.conf.Settings;
 import org.jooq.impl.DSL;
 import org.jooq.impl.SQLDataType;

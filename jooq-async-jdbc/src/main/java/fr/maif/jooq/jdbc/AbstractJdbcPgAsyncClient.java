@@ -6,6 +6,7 @@ import io.vavr.collection.List;
 import io.vavr.concurrent.Future;
 import io.vavr.control.Option;
 import org.jooq.*;
+import org.jooq.Record;
 
 import java.util.concurrent.Executor;
 import java.util.function.Function;

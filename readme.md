@@ -58,7 +58,7 @@ implementation 'fr.maif:jooq-async-reactive:1.0.0'
 The JDBC one : 
 
 ```java
-DataSource dataSource = dataSource = new PGSimpleDataSource();
+PGSimpleDataSource dataSource = new PGSimpleDataSource();
 dataSource.setUrl(url);
 dataSource.setUser(user);
 dataSource.setPassword(password);
