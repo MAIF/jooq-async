@@ -8,8 +8,6 @@ import fr.maif.jooq.PgAsyncConnection;
 import fr.maif.jooq.PgAsyncTransaction;
 import fr.maif.jooq.QueryResult;
 import io.vavr.concurrent.Future;
-import io.vavr.concurrent.Promise;
-import io.vavr.control.Try;
 import io.vertx.sqlclient.SqlConnection;
 import org.jooq.Configuration;
 import org.jooq.DSLContext;
@@ -17,6 +15,8 @@ import org.jooq.Record;
 import org.jooq.ResultQuery;
 
 import java.util.function.Function;
+
+import static fr.maif.jooq.reactive.FutureConversions.fromVertx;
 
 public class ReactivePgAsyncConnection extends AbstractReactivePgAsyncClient<SqlConnection> implements PgAsyncConnection {
 
@@ -26,14 +26,12 @@ public class ReactivePgAsyncConnection extends AbstractReactivePgAsyncClient<Sql
 
     @Override
     public Future<Tuple0> close() {
-        Promise<Tuple0> fClose = Promise.make();
-        client.closeHandler(event -> fClose.complete(Try.of(Tuple::empty)));
-        return fClose.future();
+        return fromVertx(client.close()).map(__ -> Tuple.empty());
     }
 
     @Override
     public Future<PgAsyncTransaction> begin() {
-        return FutureConversions.fromVertx(client.begin())
+        return fromVertx(client.begin())
                 .map(tx -> new ReactivePgAsyncTransaction(client, tx, configuration));
     }
 

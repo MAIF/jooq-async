@@ -36,6 +36,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import static fr.maif.jooq.reactive.FutureConversions.fromVertx;
 import static io.vavr.API.*;
 import static io.vavr.Predicates.instanceOf;
 import static java.util.Objects.isNull;
@@ -57,15 +58,9 @@ public abstract class AbstractReactivePgAsyncClient<Client extends SqlClient> im
     protected <R extends Record> Future<RowSet<Row>> rawPreparedQuery(Function<DSLContext, ? extends ResultQuery<R>> queryFunction) {
         Query query = createQuery(queryFunction);
         log(query);
-        Promise<RowSet<Row>> rowFuture = Promise.make();
         String preparedQuery = toPreparedQuery(query);
         Tuple bindValues = getBindValues(query);
-
-        client.preparedQuery(preparedQuery).execute(
-                bindValues,
-                toCompletionHandler(rowFuture)
-        );
-        return rowFuture.future();
+        return fromVertx(client.preparedQuery(preparedQuery).execute(bindValues));
     }
 
     @Override
@@ -91,9 +86,8 @@ public abstract class AbstractReactivePgAsyncClient<Client extends SqlClient> im
     public Future<Integer> execute(Function<DSLContext, ? extends Query> queryFunction) {
         Query query = createQuery(queryFunction);
         log(query);
-        Promise<RowSet<Row>> rowFuture = Promise.make();
-        client.preparedQuery(toPreparedQuery(query)).execute(getBindValues(query), toCompletionHandler(rowFuture));
-        return rowFuture.future().map(RowSet::rowCount);
+        return fromVertx(client.preparedQuery(toPreparedQuery(query)).execute(getBindValues(query)))
+                .map(RowSet::rowCount);
     }
 
     @Override
@@ -102,11 +96,10 @@ public abstract class AbstractReactivePgAsyncClient<Client extends SqlClient> im
         return queries.foldLeft(Future.successful(0L), (acc, query) ->
                 acc.flatMap(count -> {
                     log(query);
-                    Promise<RowSet<Row>> rowFuture = Promise.make();
                     String preparedQuery = toPreparedQuery(query);
                     Tuple bindValues = getBindValues(query);
-                    client.preparedQuery(preparedQuery).execute(bindValues, toCompletionHandler(rowFuture));
-                    return rowFuture.future().map(RowSet::rowCount).map(c -> count + c);
+                    return fromVertx(client.preparedQuery(preparedQuery).execute(bindValues))
+                            .map(RowSet::rowCount).map(c -> count + c);
                 })
         );
     }

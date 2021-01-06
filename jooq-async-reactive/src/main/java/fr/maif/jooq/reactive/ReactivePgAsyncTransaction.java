@@ -3,22 +3,16 @@ package fr.maif.jooq.reactive;
 import akka.Done;
 import akka.NotUsed;
 import akka.stream.javadsl.Source;
-import io.vavr.Tuple;
-import io.vavr.Tuple0;
 import fr.maif.jooq.PgAsyncTransaction;
 import fr.maif.jooq.QueryResult;
+import io.vavr.Tuple;
+import io.vavr.Tuple0;
 import io.vavr.collection.List;
 import io.vavr.concurrent.Future;
-import io.vavr.concurrent.Promise;
-import io.vavr.control.Try;
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Handler;
-import io.vertx.sqlclient.*;
-import org.jooq.Configuration;
-import org.jooq.DSLContext;
-import org.jooq.Query;
+import io.vertx.sqlclient.SqlConnection;
+import io.vertx.sqlclient.Transaction;
 import org.jooq.Record;
-import org.jooq.ResultQuery;
+import org.jooq.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +20,8 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
+
+import static fr.maif.jooq.reactive.FutureConversions.fromVertx;
 
 public class ReactivePgAsyncTransaction extends AbstractReactivePgAsyncClient<SqlConnection> implements PgAsyncTransaction {
     private static final Logger LOGGER = LoggerFactory.getLogger(ReactivePgAsyncTransaction.class);
@@ -39,45 +35,33 @@ public class ReactivePgAsyncTransaction extends AbstractReactivePgAsyncClient<Sq
 
     @Override
     public Future<Tuple0> commit() {
-        Promise<Tuple0> fCommit = Promise.make();
-        transaction.commit(r -> fCommit.complete(Try.of(Tuple::empty)));
-        return fCommit.future();
+        return fromVertx(transaction.commit()).map(__ -> Tuple.empty());
     }
 
     @Override
     public Future<Tuple0> rollback() {
-        Promise<Tuple0> fRollback = Promise.make();
-        transaction.rollback(r -> fRollback.complete(Try.of(Tuple::empty)));
-        return fRollback.future();
+        return fromVertx(transaction.rollback()).map(__ -> Tuple.empty());
     }
 
     @Override
     public <Q extends Record> Source<QueryResult, NotUsed> stream(Integer fetchSize, Function<DSLContext, ? extends ResultQuery<Q>> queryFunction) {
         Query query = createQuery(queryFunction);
         log(query);
-
-        Promise<PreparedStatement> fPreparedQuery = Promise.make();
-        Handler<AsyncResult<PreparedStatement>> preparedQueryFutureHandler = toCompletionHandler(fPreparedQuery);
-        this.client.prepare(toPreparedQuery(query), preparedQueryFutureHandler);
         AtomicBoolean first = new AtomicBoolean(true);
         return Source.unfoldResourceAsync(
-                () -> fPreparedQuery.future().map(q -> q.cursor(getBindValues(query)))
-                            .toCompletableFuture(),
+                () -> this.client.prepare(toPreparedQuery(query)).map(q -> q.cursor(getBindValues(query))).toCompletionStage(),
                 cursor -> {
                     if (first.getAndSet(false) || cursor.hasMore()) {
-                        Promise<RowSet<Row>> resultP = Promise.make();
-                        Handler<AsyncResult<RowSet<Row>>> resultHandler = toCompletionHandler(resultP);
-                        cursor.read(500, resultHandler);
-                        return resultP.future().map(rs ->
+                        return cursor.read(500).map(rs ->
                             Optional.of(List.ofAll(rs)
                                     .map(ReactiveRowQueryResult::new)
                                     .map(r -> (QueryResult)r))
-                        ).toCompletableFuture();
+                        ).toCompletionStage();
                     } else {
                         return CompletableFuture.completedFuture(Optional.empty());
                     }
                 },
-                cursor -> CompletableFuture.completedFuture(Done.getInstance()))
-                .mapConcat(l -> l);
+                cursor -> cursor.close().map(Done.getInstance()).toCompletionStage()
+        ).mapConcat(l -> l);
     }
 }
