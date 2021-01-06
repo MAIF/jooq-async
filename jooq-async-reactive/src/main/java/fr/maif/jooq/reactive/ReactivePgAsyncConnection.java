@@ -33,23 +33,29 @@ public class ReactivePgAsyncConnection extends AbstractReactivePgAsyncClient<Sql
 
     @Override
     public Future<PgAsyncTransaction> begin() {
-        return Future.successful(new ReactivePgAsyncTransaction(client.begin(), configuration));
+        return FutureConversions.fromVertx(client.begin())
+                .map(tx -> new ReactivePgAsyncTransaction(client, tx, configuration));
     }
 
     @Override
     public <Q extends Record> Source<QueryResult, NotUsed> stream(Integer fetchSize, Function<DSLContext, ? extends ResultQuery<Q>> queryFunction) {
-        ReactivePgAsyncTransaction pgAsyncTransaction = new ReactivePgAsyncTransaction(client.begin(), configuration);
-        return pgAsyncTransaction.stream(fetchSize, queryFunction)
-                        .watchTermination((nu, d) ->
-                                d.handleAsync((__, e) -> {
-                                    if (e != null) {
-                                        return pgAsyncTransaction.rollback().toCompletableFuture();
-                                    } else {
-                                        return pgAsyncTransaction.commit().toCompletableFuture();
-                                    }
-                                })
-                        )
-                        .mapMaterializedValue(__ -> NotUsed.notUsed());
+
+        return Source.completionStage(client.begin().toCompletionStage())
+                .flatMapConcat(tx -> {
+                            final ReactivePgAsyncTransaction pgAsyncTransaction = new ReactivePgAsyncTransaction(client, tx, configuration);
+                            return pgAsyncTransaction
+                                    .stream(fetchSize, queryFunction)
+                                    .watchTermination((nu, d) ->
+                                            d.handleAsync((__, e) -> {
+                                                if (e != null) {
+                                                    return pgAsyncTransaction.rollback().toCompletableFuture();
+                                                } else {
+                                                    return pgAsyncTransaction.commit().toCompletableFuture();
+                                                }
+                                            })
+                                    )
+                                    .mapMaterializedValue(__ -> NotUsed.notUsed());
+                        });
     }
 
 }

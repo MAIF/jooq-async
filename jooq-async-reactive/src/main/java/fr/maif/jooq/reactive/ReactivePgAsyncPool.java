@@ -25,9 +25,10 @@ public class ReactivePgAsyncPool extends AbstractReactivePgAsyncClient<PgPool> i
 
     @Override
     public Future<PgAsyncTransaction> begin() {
-        Promise<Transaction> fConnection = Promise.make();
-        client.begin(toCompletionHandler(fConnection));
-        return fConnection.future().map(c -> new ReactivePgAsyncTransaction(c, configuration));
+        return FutureConversions.fromVertx(client.getConnection())
+                .flatMap(c -> FutureConversions.fromVertx(c.begin())
+                        .map(t -> new ReactivePgAsyncTransaction(c, t, configuration))
+                );
     }
 
 

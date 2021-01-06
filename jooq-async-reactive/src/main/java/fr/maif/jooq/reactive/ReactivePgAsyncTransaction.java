@@ -13,10 +13,7 @@ import io.vavr.concurrent.Promise;
 import io.vavr.control.Try;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
-import io.vertx.sqlclient.PreparedQuery;
-import io.vertx.sqlclient.Row;
-import io.vertx.sqlclient.RowSet;
-import io.vertx.sqlclient.Transaction;
+import io.vertx.sqlclient.*;
 import org.jooq.Configuration;
 import org.jooq.DSLContext;
 import org.jooq.Query;
@@ -30,24 +27,27 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
-public class ReactivePgAsyncTransaction extends AbstractReactivePgAsyncClient<Transaction> implements PgAsyncTransaction {
+public class ReactivePgAsyncTransaction extends AbstractReactivePgAsyncClient<SqlConnection> implements PgAsyncTransaction {
     private static final Logger LOGGER = LoggerFactory.getLogger(ReactivePgAsyncTransaction.class);
 
-    public ReactivePgAsyncTransaction(Transaction client, Configuration configuration) {
+    private Transaction transaction;
+
+    public ReactivePgAsyncTransaction(SqlConnection client, Transaction transaction, Configuration configuration) {
         super(client, configuration);
+        this.transaction = transaction;
     }
 
     @Override
     public Future<Tuple0> commit() {
         Promise<Tuple0> fCommit = Promise.make();
-        client.commit(r -> fCommit.complete(Try.of(Tuple::empty)));
+        transaction.commit(r -> fCommit.complete(Try.of(Tuple::empty)));
         return fCommit.future();
     }
 
     @Override
     public Future<Tuple0> rollback() {
         Promise<Tuple0> fRollback = Promise.make();
-        client.rollback(r -> fRollback.complete(Try.of(Tuple::empty)));
+        transaction.rollback(r -> fRollback.complete(Try.of(Tuple::empty)));
         return fRollback.future();
     }
 
@@ -56,8 +56,8 @@ public class ReactivePgAsyncTransaction extends AbstractReactivePgAsyncClient<Tr
         Query query = createQuery(queryFunction);
         log(query);
 
-        Promise<PreparedQuery> fPreparedQuery = Promise.make();
-        Handler<AsyncResult<PreparedQuery>> preparedQueryFutureHandler = toCompletionHandler(fPreparedQuery);
+        Promise<PreparedStatement> fPreparedQuery = Promise.make();
+        Handler<AsyncResult<PreparedStatement>> preparedQueryFutureHandler = toCompletionHandler(fPreparedQuery);
         this.client.prepare(toPreparedQuery(query), preparedQueryFutureHandler);
         AtomicBoolean first = new AtomicBoolean(true);
         return Source.unfoldResourceAsync(
