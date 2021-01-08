@@ -52,7 +52,6 @@ public class ReactivePgAsyncTransaction extends AbstractReactivePgAsyncClient<Sq
                 () -> this.client.prepare(toPreparedQuery(query)).map(q -> q.cursor(getBindValues(query))).toCompletionStage(),
                 cursor -> {
                     if (first.getAndSet(false) || cursor.hasMore()) {
-                        System.out.println("Read cursor");
                         return cursor.read(500).map(rs ->
                             Optional.of(List.ofAll(rs)
                                     .map(ReactiveRowQueryResult::new)
@@ -63,7 +62,6 @@ public class ReactivePgAsyncTransaction extends AbstractReactivePgAsyncClient<Sq
                     }
                 },
                 cursor -> cursor.close().map(Done.getInstance()).toCompletionStage()
-//                cursor -> CompletableFuture.completedFuture(Done.getInstance())
         ).mapConcat(l -> l);
     }
 }
