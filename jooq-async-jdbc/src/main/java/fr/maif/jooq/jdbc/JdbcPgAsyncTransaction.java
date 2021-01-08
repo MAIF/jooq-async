@@ -28,7 +28,7 @@ public class JdbcPgAsyncTransaction extends AbstractJdbcPgAsyncClient implements
     }
 
     @Override
-    public Future<Tuple0> commit() {
+    public Future<PgAsyncTransaction> commit() {
         return Future.of(executor, () -> {
             Try.of(() -> {
                 connection.commit();
@@ -40,7 +40,7 @@ public class JdbcPgAsyncTransaction extends AbstractJdbcPgAsyncClient implements
     }
 
     @Override
-    public Future<Tuple0> rollback() {
+    public Future<PgAsyncTransaction> rollback() {
         return Future.of(executor, () -> {
             Try.of(() -> {
                 connection.rollback();

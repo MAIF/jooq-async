@@ -35,12 +35,12 @@ public class ReactivePgAsyncTransaction extends AbstractReactivePgAsyncClient<Sq
 
     @Override
     public Future<Tuple0> commit() {
-        return fromVertx(transaction.commit()).map(__ -> Tuple.empty());
+        return fromVertx(transaction.commit().flatMap(__ -> client.close())).map(__ -> Tuple.empty());
     }
 
     @Override
     public Future<Tuple0> rollback() {
-        return fromVertx(transaction.rollback()).map(__ -> Tuple.empty());
+        return fromVertx(transaction.rollback().flatMap(__ -> client.close())).map(__ -> Tuple.empty());
     }
 
     @Override
@@ -52,6 +52,7 @@ public class ReactivePgAsyncTransaction extends AbstractReactivePgAsyncClient<Sq
                 () -> this.client.prepare(toPreparedQuery(query)).map(q -> q.cursor(getBindValues(query))).toCompletionStage(),
                 cursor -> {
                     if (first.getAndSet(false) || cursor.hasMore()) {
+                        System.out.println("Read cursor");
                         return cursor.read(500).map(rs ->
                             Optional.of(List.ofAll(rs)
                                     .map(ReactiveRowQueryResult::new)
@@ -62,6 +63,7 @@ public class ReactivePgAsyncTransaction extends AbstractReactivePgAsyncClient<Sq
                     }
                 },
                 cursor -> cursor.close().map(Done.getInstance()).toCompletionStage()
+//                cursor -> CompletableFuture.completedFuture(Done.getInstance())
         ).mapConcat(l -> l);
     }
 }

@@ -2,7 +2,7 @@ package fr.maif.jooq;
 
 import akka.NotUsed;
 import akka.actor.ActorSystem;
-import akka.stream.ActorMaterializer;
+import akka.stream.Materializer;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -91,13 +91,13 @@ public abstract class AbstractPgAsyncPoolTest {
         this.dataSource = dataSourceRef.get();
         this.dslContext = DSL.using(dataSource, SQLDialect.POSTGRES, new Settings());
         try {
-            dslContext.createTable(this.table)
+            dslContext.createTableIfNotExists(this.table)
                     .column(name)
                     .column(meta)
                     .column(created)
                     .execute();
 
-            dslContext.createTable(Person.PERSON)
+            dslContext.createTableIfNotExists(Person.PERSON)
                     .column(Person.PERSON.NOM)
                     .column(Person.PERSON.METADATA)
                     .column(Person.PERSON.CREATED)
@@ -109,7 +109,9 @@ public abstract class AbstractPgAsyncPoolTest {
     public void cleanUp() {
         try {
             this.dslContext.dropTable(table).execute();
-            dslContext.dropTable(Person.PERSON).execute();
+        } catch (Exception e) {}
+        try {
+            this.dslContext.dropTable(Person.PERSON).execute();
         } catch (Exception e) {}
     }
 
@@ -260,7 +262,7 @@ Future<Option<String>> futureResult = pgAsyncPool()
                 .stream(10, dsl -> dsl.select(name).from(table))
                 .map(q -> q.get(name));
         List<String> res = stream
-                .runWith(Sink.seq(), ActorMaterializer.create(actorSystem))
+                .runWith(Sink.seq(), Materializer.createMaterializer(actorSystem))
                 .thenApply(List::ofAll)
                 .toCompletableFuture().join();
         assertThat(res).containsExactlyInAnyOrder(names.toJavaArray(String[]::new));
