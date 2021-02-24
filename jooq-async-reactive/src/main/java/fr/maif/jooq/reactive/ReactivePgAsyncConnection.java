@@ -1,6 +1,4 @@
 package fr.maif.jooq.reactive;
-
-import akka.NotUsed;
 import akka.stream.javadsl.Source;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
@@ -14,6 +12,9 @@ import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.ResultQuery;
 
+import javax.annotation.processing.Completion;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 import static fr.maif.jooq.reactive.FutureConversions.fromVertx;
@@ -36,23 +37,13 @@ public class ReactivePgAsyncConnection extends AbstractReactivePgAsyncClient<Sql
     }
 
     @Override
-    public <Q extends Record> Source<QueryResult, NotUsed> stream(Integer fetchSize, Function<DSLContext, ? extends ResultQuery<Q>> queryFunction) {
+    public <Q extends Record> Source<QueryResult, CompletionStage<PgAsyncTransaction>> stream(Integer fetchSize, boolean commit, Function<DSLContext, ? extends ResultQuery<Q>> queryFunction) {
 
         return Source.completionStage(client.begin().toCompletionStage())
                 .flatMapConcat(tx -> {
                             final ReactivePgAsyncTransaction pgAsyncTransaction = new ReactivePgAsyncTransaction(client, tx, configuration);
                             return pgAsyncTransaction
-                                    .stream(fetchSize, queryFunction)
-                                    .watchTermination((nu, d) ->
-                                            d.handleAsync((__, e) -> {
-                                                if (e != null) {
-                                                    return pgAsyncTransaction.rollback().toCompletableFuture();
-                                                } else {
-                                                    return pgAsyncTransaction.commit().toCompletableFuture();
-                                                }
-                                            })
-                                    )
-                                    .mapMaterializedValue(__ -> NotUsed.notUsed());
+                                    .stream(fetchSize, commit, queryFunction)
                         });
     }
 

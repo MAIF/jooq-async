@@ -1,7 +1,6 @@
 package fr.maif.jooq.reactive;
 
 import akka.Done;
-import akka.NotUsed;
 import akka.stream.javadsl.Source;
 import fr.maif.jooq.PgAsyncTransaction;
 import fr.maif.jooq.QueryResult;
@@ -18,12 +17,18 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
+
+import static java.util.function.Function.identity;
 
 import static fr.maif.jooq.reactive.FutureConversions.fromVertx;
 
 public class ReactivePgAsyncTransaction extends AbstractReactivePgAsyncClient<SqlConnection> implements PgAsyncTransaction {
+import static java.util.function.Function.identity;
+
+public class ReactivePgAsyncTransaction extends AbstractReactivePgAsyncClient<Transaction> implements PgAsyncTransaction {
     private static final Logger LOGGER = LoggerFactory.getLogger(ReactivePgAsyncTransaction.class);
 
     private Transaction transaction;
@@ -44,7 +49,7 @@ public class ReactivePgAsyncTransaction extends AbstractReactivePgAsyncClient<Sq
     }
 
     @Override
-    public <Q extends Record> Source<QueryResult, NotUsed> stream(Integer fetchSize, Function<DSLContext, ? extends ResultQuery<Q>> queryFunction) {
+    public <Q extends Record> Source<QueryResult, CompletionStage<PgAsyncTransaction>> stream(Integer fetchSize, boolean closeTx, Function<DSLContext, ? extends ResultQuery<Q>> queryFunction) {
         Query query = createQuery(queryFunction);
         log(query);
         AtomicBoolean first = new AtomicBoolean(true);
@@ -52,7 +57,7 @@ public class ReactivePgAsyncTransaction extends AbstractReactivePgAsyncClient<Sq
                 () -> this.client.prepare(toPreparedQuery(query)).map(q -> q.cursor(getBindValues(query))).toCompletionStage(),
                 cursor -> {
                     if (first.getAndSet(false) || cursor.hasMore()) {
-                        return cursor.read(500).map(rs ->
+                        return cursor.read(fetchSize).map(rs ->
                             Optional.of(List.ofAll(rs)
                                     .map(ReactiveRowQueryResult::new)
                                     .map(r -> (QueryResult)r))
@@ -62,6 +67,21 @@ public class ReactivePgAsyncTransaction extends AbstractReactivePgAsyncClient<Sq
                     }
                 },
                 cursor -> cursor.close().map(Done.getInstance()).toCompletionStage()
-        ).mapConcat(l -> l);
+        ).mapConcat(l -> l)
+        .watchTermination((tx, d) -> {
+            CompletionStage<PgAsyncTransaction> mat = d.handleAsync((__, e) -> {
+                if (e != null) {
+                    return this.rollback().map(any -> (PgAsyncTransaction) this).toCompletableFuture();
+                } else {
+                    if (closeTx) {
+                        return this.commit().map(any -> (PgAsyncTransaction) this).toCompletableFuture();
+                    } else {
+                        return CompletableFuture.completedFuture((PgAsyncTransaction) this);
+                    }
+                }
+            })
+                    .thenCompose(identity());
+            return mat;
+        });
     }
 }

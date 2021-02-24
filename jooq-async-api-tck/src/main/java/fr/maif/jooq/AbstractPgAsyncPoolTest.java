@@ -258,7 +258,7 @@ Future<Option<String>> futureResult = pgAsyncPool()
                 names.map(n -> dslContext.insertInto(table).set(name, n))
         ).get();
 
-        Source<String, NotUsed> stream = pgAsyncPool()
+        Source<String, ?> stream = pgAsyncPool()
                 .stream(10, dsl -> dsl.select(name).from(table))
                 .map(q -> q.get(name));
         List<String> res = stream

@@ -9,7 +9,10 @@ import org.jooq.ResultQuery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
+
+import static java.util.function.Function.identity;
 
 public interface PgAsyncPool extends PgAsyncClient {
     Logger LOGGER = LoggerFactory.getLogger(PgAsyncPool.class);
@@ -29,24 +32,13 @@ public interface PgAsyncPool extends PgAsyncClient {
     }
 
     @Override
-    default <Q extends Record> Source<QueryResult, NotUsed> stream(Integer fetchSize, Function<DSLContext, ? extends ResultQuery<Q>> queryFunction) {
+    default <Q extends Record> Source<QueryResult, CompletionStage<PgAsyncTransaction>> stream(Integer fetchSize, boolean commit, Function<DSLContext, ? extends ResultQuery<Q>> queryFunction) {
         return Source.completionStageSource(
                 connection().flatMap(c ->
                     c.begin().map(pgAsyncTransaction -> pgAsyncTransaction
-                        .stream(fetchSize, queryFunction)
-                        .watchTermination((nu, d) ->
-                                d.handleAsync((__, e) -> {
-                                    if (e != null) {
-                                        LOGGER.error("Stream terminated with error", e);
-                                        return pgAsyncTransaction.rollback().toCompletableFuture();
-                                    } else {
-                                        LOGGER.debug("Stream terminated correctly");
-                                        return pgAsyncTransaction.commit().toCompletableFuture();
-                                    }
-                                })
-                        )
+                        .stream(fetchSize, commit, queryFunction)
                     )
                 ).toCompletableFuture()
-        ).mapMaterializedValue(__ -> NotUsed.notUsed());
+        ).mapMaterializedValue(cs -> cs.thenCompose(identity()));
     }
 }
