@@ -30,7 +30,9 @@ public interface PgAsyncPool extends PgAsyncClient {
 
     @Override
     default <Q extends Record> Source<QueryResult, NotUsed> stream(Integer fetchSize, Function<DSLContext, ? extends ResultQuery<Q>> queryFunction) {
-        return Source.fromSourceCompletionStage(begin().map(pgAsyncTransaction -> pgAsyncTransaction
+        return Source.completionStageSource(
+                connection().flatMap(c ->
+                    c.begin().map(pgAsyncTransaction -> pgAsyncTransaction
                         .stream(fetchSize, queryFunction)
                         .watchTermination((nu, d) ->
                                 d.handleAsync((__, e) -> {
@@ -43,6 +45,7 @@ public interface PgAsyncPool extends PgAsyncClient {
                                     }
                                 })
                         )
+                    )
                 ).toCompletableFuture()
         ).mapMaterializedValue(__ -> NotUsed.notUsed());
     }
