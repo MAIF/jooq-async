@@ -15,8 +15,11 @@ import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
 
 import java.sql.Connection;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
+
+import static java.util.function.Function.identity;
 
 public class JdbcPgAsyncConnection extends AbstractJdbcPgAsyncClient implements PgAsyncConnection {
 
@@ -44,10 +47,11 @@ public class JdbcPgAsyncConnection extends AbstractJdbcPgAsyncClient implements 
     }
 
     @Override
-    public <Q extends Record> Source<QueryResult, NotUsed> stream(Integer fetchSize, Function<DSLContext, ? extends ResultQuery<Q>> queryFunction) {
+    public <Q extends Record> Source<QueryResult, CompletionStage<PgAsyncTransaction>> stream(Integer fetchSize, boolean closeTx, Function<DSLContext, ? extends ResultQuery<Q>> queryFunction) {
         return Source.fromSourceCompletionStage(begin().map(pgAsyncTransaction ->
-                pgAsyncTransaction.stream(fetchSize, queryFunction)).toCompletableFuture()
-        ).mapMaterializedValue(__ -> NotUsed.notUsed());
+                pgAsyncTransaction.stream(fetchSize, closeTx, queryFunction)
+            ).toCompletableFuture()
+        ).mapMaterializedValue(mat -> mat.thenCompose(identity()));
     }
 
 }

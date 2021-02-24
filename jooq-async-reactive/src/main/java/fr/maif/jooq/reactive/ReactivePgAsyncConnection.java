@@ -1,6 +1,4 @@
 package fr.maif.jooq.reactive;
-
-import akka.NotUsed;
 import akka.stream.javadsl.Source;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
@@ -16,6 +14,9 @@ import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.ResultQuery;
 
+import javax.annotation.processing.Completion;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 public class ReactivePgAsyncConnection extends AbstractReactivePgAsyncClient<SqlConnection> implements PgAsyncConnection {
@@ -37,19 +38,9 @@ public class ReactivePgAsyncConnection extends AbstractReactivePgAsyncClient<Sql
     }
 
     @Override
-    public <Q extends Record> Source<QueryResult, NotUsed> stream(Integer fetchSize, Function<DSLContext, ? extends ResultQuery<Q>> queryFunction) {
+    public <Q extends Record> Source<QueryResult, CompletionStage<PgAsyncTransaction>> stream(Integer fetchSize, boolean commit, Function<DSLContext, ? extends ResultQuery<Q>> queryFunction) {
         ReactivePgAsyncTransaction pgAsyncTransaction = new ReactivePgAsyncTransaction(client.begin(), configuration);
-        return pgAsyncTransaction.stream(fetchSize, queryFunction)
-                        .watchTermination((nu, d) ->
-                                d.handleAsync((__, e) -> {
-                                    if (e != null) {
-                                        return pgAsyncTransaction.rollback().toCompletableFuture();
-                                    } else {
-                                        return pgAsyncTransaction.commit().toCompletableFuture();
-                                    }
-                                })
-                        )
-                        .mapMaterializedValue(__ -> NotUsed.notUsed());
+        return pgAsyncTransaction.stream(fetchSize, commit, queryFunction);
     }
 
 }

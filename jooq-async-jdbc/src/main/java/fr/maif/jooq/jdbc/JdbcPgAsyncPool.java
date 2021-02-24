@@ -1,14 +1,23 @@
 package fr.maif.jooq.jdbc;
 
+import akka.stream.javadsl.Source;
 import fr.maif.jooq.PgAsyncConnection;
 import fr.maif.jooq.PgAsyncPool;
 import fr.maif.jooq.PgAsyncTransaction;
+import fr.maif.jooq.QueryResult;
 import io.vavr.concurrent.Future;
+import org.jooq.DSLContext;
+import org.jooq.Record;
+import org.jooq.ResultQuery;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
 
 import javax.sql.DataSource;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
+import java.util.function.Function;
+
+import static java.util.function.Function.identity;
 
 public class JdbcPgAsyncPool extends AbstractJdbcPgAsyncClient implements PgAsyncPool {
 

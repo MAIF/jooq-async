@@ -1,7 +1,6 @@
 package fr.maif.jooq.reactive;
 
 import akka.Done;
-import akka.NotUsed;
 import akka.stream.javadsl.Source;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
@@ -27,8 +26,11 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
+
+import static java.util.function.Function.identity;
 
 public class ReactivePgAsyncTransaction extends AbstractReactivePgAsyncClient<Transaction> implements PgAsyncTransaction {
     private static final Logger LOGGER = LoggerFactory.getLogger(ReactivePgAsyncTransaction.class);
@@ -52,7 +54,7 @@ public class ReactivePgAsyncTransaction extends AbstractReactivePgAsyncClient<Tr
     }
 
     @Override
-    public <Q extends Record> Source<QueryResult, NotUsed> stream(Integer fetchSize, Function<DSLContext, ? extends ResultQuery<Q>> queryFunction) {
+    public <Q extends Record> Source<QueryResult, CompletionStage<PgAsyncTransaction>> stream(Integer fetchSize, boolean closeTx, Function<DSLContext, ? extends ResultQuery<Q>> queryFunction) {
         Query query = createQuery(queryFunction);
         log(query);
 
@@ -62,22 +64,37 @@ public class ReactivePgAsyncTransaction extends AbstractReactivePgAsyncClient<Tr
         AtomicBoolean first = new AtomicBoolean(true);
         return Source.unfoldResourceAsync(
                 () -> fPreparedQuery.future().map(q -> q.cursor(getBindValues(query)))
-                            .toCompletableFuture(),
+                        .toCompletableFuture(),
                 cursor -> {
                     if (first.getAndSet(false) || cursor.hasMore()) {
                         Promise<RowSet<Row>> resultP = Promise.make();
                         Handler<AsyncResult<RowSet<Row>>> resultHandler = toCompletionHandler(resultP);
                         cursor.read(500, resultHandler);
                         return resultP.future().map(rs ->
-                            Optional.of(List.ofAll(rs)
-                                    .map(ReactiveRowQueryResult::new)
-                                    .map(r -> (QueryResult)r))
+                                Optional.of(List.ofAll(rs)
+                                        .map(ReactiveRowQueryResult::new)
+                                        .map(r -> (QueryResult) r))
                         ).toCompletableFuture();
                     } else {
                         return CompletableFuture.completedFuture(Optional.empty());
                     }
                 },
                 cursor -> CompletableFuture.completedFuture(Done.getInstance()))
-                .mapConcat(l -> l);
+                .mapConcat(l -> l)
+                .watchTermination((tx, d) -> {
+                    CompletionStage<PgAsyncTransaction> mat = d.handleAsync((__, e) -> {
+                        if (e != null) {
+                            return this.rollback().map(any -> (PgAsyncTransaction) this).toCompletableFuture();
+                        } else {
+                            if (closeTx) {
+                                return this.commit().map(any -> (PgAsyncTransaction) this).toCompletableFuture();
+                            } else {
+                                return CompletableFuture.completedFuture((PgAsyncTransaction) this);
+                            }
+                        }
+                    })
+                    .thenCompose(identity());
+                    return mat;
+                });
     }
 }

@@ -1,6 +1,5 @@
 package fr.maif.jooq.jdbc;
 
-import akka.NotUsed;
 import akka.stream.javadsl.Source;
 import io.vavr.Tuple0;
 import io.vavr.Tuple;
@@ -15,8 +14,12 @@ import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
 
 import java.sql.Connection;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
+
+import static java.util.function.Function.identity;
 
 public class JdbcPgAsyncTransaction extends AbstractJdbcPgAsyncClient implements PgAsyncTransaction {
 
@@ -52,10 +55,23 @@ public class JdbcPgAsyncTransaction extends AbstractJdbcPgAsyncClient implements
     }
 
     @Override
-    public <Q extends Record> Source<QueryResult, NotUsed> stream(Integer fetchSize, Function<DSLContext, ? extends ResultQuery<Q>> queryFunction) {
+    public <Q extends Record> Source<QueryResult, CompletionStage<PgAsyncTransaction>> stream(Integer fetchSize, boolean closeTx, Function<DSLContext, ? extends ResultQuery<Q>> queryFunction) {
         return Source
                 .fromIterator(() -> queryFunction.apply(client).stream().iterator())
                 .async("jdbc-execution-context")
-                .map(JooqQueryResult::new);
+                .map(JooqQueryResult::new)
+                .map(QueryResult.class::cast)
+                .watchTermination((tx, d) -> d.handleAsync((__, e) -> {
+                        if (e != null) {
+                            return this.rollback().map(any -> (PgAsyncTransaction) this).toCompletableFuture();
+                        } else {
+                            if (closeTx) {
+                                return this.commit().map(any -> (PgAsyncTransaction) this).toCompletableFuture();
+                            } else {
+                                return CompletableFuture.completedFuture((PgAsyncTransaction) this);
+                            }
+                        }
+                    }).thenCompose(identity())
+                );
     }
 }
