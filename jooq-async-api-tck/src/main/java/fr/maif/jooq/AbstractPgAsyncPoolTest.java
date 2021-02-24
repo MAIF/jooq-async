@@ -2,6 +2,7 @@ package fr.maif.jooq;
 
 import akka.NotUsed;
 import akka.actor.ActorSystem;
+import akka.japi.Pair;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
@@ -28,6 +29,7 @@ import org.postgresql.ds.PGSimpleDataSource;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.Random;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
 
 import io.vavr.jackson.datatype.VavrModule;
@@ -262,6 +264,29 @@ Future<Option<String>> futureResult = pgAsyncPool()
                 .stream(10, dsl -> dsl.select(name).from(table))
                 .map(q -> q.get(name));
         List<String> res = stream
+                .runWith(Sink.seq(), Materializer.createMaterializer(actorSystem))
+                .thenApply(List::ofAll)
+                .toCompletableFuture().join();
+        assertThat(res).containsExactlyInAnyOrder(names.toJavaArray(String[]::new));
+    }
+
+
+    @Test
+    public void streamAndGetTransaction() {
+        List<String> names = List.range(0, 10000).map(i -> "name-" + i);
+        pgAsyncPool().executeBatch(dsl ->
+                names.map(n -> dslContext.insertInto(table).set(name, n))
+        ).get();
+
+        Source<QueryResult, CompletionStage<PgAsyncTransaction>> toMat = pgAsyncPool()
+                .stream(10, dsl -> dsl.select(name).from(table));
+
+        Pair<CompletionStage<PgAsyncTransaction>, Source<QueryResult, NotUsed>> preMatStream = toMat.preMaterialize(actorSystem);
+
+        List<String> res = Source.completionStageSource(
+                preMatStream.first().thenApply(tx ->
+                        preMatStream.second().map(q -> q.get(name))
+                ))
                 .runWith(Sink.seq(), Materializer.createMaterializer(actorSystem))
                 .thenApply(List::ofAll)
                 .toCompletableFuture().join();

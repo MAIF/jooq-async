@@ -1,4 +1,5 @@
 package fr.maif.jooq.reactive;
+
 import akka.stream.javadsl.Source;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
@@ -39,12 +40,12 @@ public class ReactivePgAsyncConnection extends AbstractReactivePgAsyncClient<Sql
     @Override
     public <Q extends Record> Source<QueryResult, CompletionStage<PgAsyncTransaction>> stream(Integer fetchSize, boolean commit, Function<DSLContext, ? extends ResultQuery<Q>> queryFunction) {
 
-        return Source.completionStage(client.begin().toCompletionStage())
-                .flatMapConcat(tx -> {
-                            final ReactivePgAsyncTransaction pgAsyncTransaction = new ReactivePgAsyncTransaction(client, tx, configuration);
-                            return pgAsyncTransaction
-                                    .stream(fetchSize, commit, queryFunction)
-                        });
+        return Source.completionStageSource(client.begin().toCompletionStage()
+                .thenApply(tx -> {
+                    final ReactivePgAsyncTransaction pgAsyncTransaction = new ReactivePgAsyncTransaction(client, tx, configuration);
+                    return pgAsyncTransaction.stream(fetchSize, commit, queryFunction);
+                }))
+                .mapMaterializedValue(cs -> cs.thenCompose(Function.identity()));
     }
 
 }
