@@ -1,6 +1,7 @@
 package fr.maif.jooq.jdbc;
 
 import akka.stream.javadsl.Source;
+import fr.maif.jooq.PgAsyncClient;
 import io.vavr.Tuple0;
 import io.vavr.Tuple;
 import fr.maif.jooq.PgAsyncTransaction;
@@ -19,6 +20,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 
+import static fr.maif.jooq.PgAsyncClient.commitIfSuccess;
 import static java.util.function.Function.identity;
 
 public class JdbcPgAsyncTransaction extends AbstractJdbcPgAsyncClient implements PgAsyncTransaction {
@@ -63,17 +65,7 @@ public class JdbcPgAsyncTransaction extends AbstractJdbcPgAsyncClient implements
                         .async("jdbc-execution-context")
                         .map(JooqQueryResult::new)
                         .map(QueryResult.class::cast)
-                        .watchTermination((___, d) -> d.handleAsync((__, e) -> {
-                                    if (e != null) {
-                                        return this.rollback().map(any -> (PgAsyncTransaction) this).toCompletableFuture();
-                                    } else {
-                                        if (closeTx) {
-                                            return this.commit().map(any -> (PgAsyncTransaction) this).toCompletableFuture();
-                                        } else {
-                                            return CompletableFuture.completedFuture((PgAsyncTransaction) this);
-                                        }
-                                    }
-                                }).thenCompose(identity())
-                        ));
+                        .watchTermination(commitIfSuccess(closeTx, this))
+                );
     }
 }

@@ -251,7 +251,8 @@ public abstract class AbstractReactivePgAsyncClient<Client extends SqlClient> im
 
     protected void log(Query query) {
         if (logger.isDebugEnabled()) {
-            logger.debug("Executing {}", query.getSQL(ParamType.INLINED));
+            logger.debug("Executing raw {}", query.getSQL(ParamType.NAMED));
+            logger.debug("Executing inlined {}", query.getSQL(ParamType.INLINED));
         }
     }
 

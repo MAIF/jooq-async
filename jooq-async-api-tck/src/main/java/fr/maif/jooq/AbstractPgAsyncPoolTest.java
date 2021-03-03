@@ -31,10 +31,12 @@ import java.time.LocalDateTime;
 import java.util.Random;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 
 import io.vavr.jackson.datatype.VavrModule;
 
 import static io.vavr.API.Some;
+import static io.vavr.API.println;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.jooq.impl.DSL.field;
@@ -42,23 +44,25 @@ import static org.jooq.impl.DSL.field;
 public abstract class AbstractPgAsyncPoolTest {
 
     private final static ObjectMapper mapper = new ObjectMapper();
+
     {
         mapper.registerModule(new VavrModule());
     }
+
     protected ActorSystem actorSystem = ActorSystem.create("test", ConfigFactory.parseString(
             "jdbc-execution-context {\n" +
-            "  type = Dispatcher\n" +
-            "  executor = \"thread-pool-executor\"\n" +
-            "  throughput = 1\n" +
-            "  thread-pool-executor {\n" +
-            "    fixed-pool-size = 5\n" +
-            "  }\n" +
-            "}"));
+                    "  type = Dispatcher\n" +
+                    "  executor = \"thread-pool-executor\"\n" +
+                    "  throughput = 1\n" +
+                    "  thread-pool-executor {\n" +
+                    "    fixed-pool-size = 5\n" +
+                    "  }\n" +
+                    "}"));
     protected final static String user = "eventsourcing";
     protected final static String password = "eventsourcing";
     protected final static String database = "eventsourcing";
     protected final static Integer port = 5557;
-    protected final static String url = "jdbc:postgresql://localhost:"+port+"/"+database;
+    protected final static String url = "jdbc:postgresql://localhost:" + port + "/" + database;
     protected PGSimpleDataSource dataSource;
     protected DSLContext dslContext;
     protected final static AtomicReference<PGSimpleDataSource> dataSourceRef = new AtomicReference<>();
@@ -104,17 +108,20 @@ public abstract class AbstractPgAsyncPoolTest {
                     .column(Person.PERSON.METADATA)
                     .column(Person.PERSON.CREATED)
                     .execute();
-        } catch(Exception e) {}
+        } catch (Exception e) {
+        }
     }
 
     @After
     public void cleanUp() {
         try {
             this.dslContext.dropTable(table).execute();
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
         try {
             this.dslContext.dropTable(Person.PERSON).execute();
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
     }
 
     @Test
@@ -133,9 +140,11 @@ public abstract class AbstractPgAsyncPoolTest {
         assertThatThrownBy(() ->
                 pgAsyncPool().inTransaction(t -> t
                         .execute(dsl -> dsl.insertInto(table).set(name, "test"))
-                        .mapTry(__ -> { throw new RuntimeException("Oups"); })
+                        .mapTry(__ -> {
+                            throw new RuntimeException("Oups");
+                        })
                 )
-                .get()
+                        .get()
         ).hasMessage("Oups");
 
         List<QueryResult> result = pgAsyncPool().query(dsl -> dsl.select(name).from(table)).get();
@@ -159,7 +168,9 @@ public abstract class AbstractPgAsyncPoolTest {
         assertThatThrownBy(() ->
                 pgAsyncPool().begin().flatMap(t -> t
                         .execute(dsl -> dsl.insertInto(table).set(name, "test"))
-                        .mapTry(__ -> { throw new RuntimeException("Oups"); })
+                        .mapTry(__ -> {
+                            throw new RuntimeException("Oups");
+                        })
                         .onSuccess(__ -> t.commit())
                         .onFailure(__ -> t.rollback())
                 ).get()
@@ -198,9 +209,9 @@ public abstract class AbstractPgAsyncPoolTest {
                 List.range(0, 10).map(i -> "name-" + i).map(n -> dslContext.insertInto(table).set(name, n))
         ).get();
 
-Future<Option<String>> futureResult = pgAsyncPool()
-        .queryOne(dsl -> dsl.select(name).from(table).where(name.eq("name-1")))
-        .map(mayBeResult -> mayBeResult.map(row -> row.get(name)));
+        Future<Option<String>> futureResult = pgAsyncPool()
+                .queryOne(dsl -> dsl.select(name).from(table).where(name.eq("name-1")))
+                .map(mayBeResult -> mayBeResult.map(row -> row.get(name)));
         Option<String> res = futureResult
                 .get();
         assertThat(res).isEqualTo(Some("name-1"));
@@ -219,8 +230,8 @@ Future<Option<String>> futureResult = pgAsyncPool()
         pgAsyncPool().executeBatch(dsl ->
                 List.range(0, 10).map(i -> dslContext
                         .insertInto(table)
-                        .set(name, "name-"+i)
-                        .set(meta, jsonFromMap(HashMap.of("name", "A name "+i)))
+                        .set(name, "name-" + i)
+                        .set(meta, jsonFromMap(HashMap.of("name", "A name " + i)))
                 )
         ).get();
 
@@ -238,8 +249,8 @@ Future<Option<String>> futureResult = pgAsyncPool()
         pgAsyncPool().executeBatch(dsl ->
                 List.range(0, 10).map(i -> dslContext
                         .insertInto(table)
-                        .set(name, "name-"+i)
-                        .set(meta, jsonFromMap(HashMap.of("name", "A name "+i)))
+                        .set(name, "name-" + i)
+                        .set(meta, jsonFromMap(HashMap.of("name", "A name " + i)))
                         .set(created, Timestamp.valueOf(localDateTime))
                 )
         ).get();
@@ -278,15 +289,22 @@ Future<Option<String>> futureResult = pgAsyncPool()
                 names.map(n -> dslContext.insertInto(table).set(name, n))
         ).get();
 
-        Source<QueryResult, CompletionStage<PgAsyncTransaction>> toMat = pgAsyncPool()
-                .stream(10, dsl -> dsl.select(name).from(table));
-
-        Pair<CompletionStage<PgAsyncTransaction>, Source<QueryResult, NotUsed>> preMatStream = toMat.preMaterialize(actorSystem);
+        Pair<CompletionStage<PgAsyncTransaction>, Source<QueryResult, NotUsed>> preMatStream =
+                pgAsyncPool()
+                        .stream(10, false, dsl -> dsl.select(name).from(table))
+                        .preMaterialize(actorSystem);
 
         List<String> res = Source.completionStageSource(
-                preMatStream.first().thenApply(tx ->
-                        preMatStream.second().map(q -> q.get(name))
-                ))
+                preMatStream.first().thenApply(tx -> {
+                    return preMatStream
+                            .second()
+                            .map(q -> q.get(name))
+                            .watchTermination((nu, cs) ->
+                                    cs.handle((d, e) ->
+                                            tx.commit().toCompletableFuture()
+                                    ).thenCompose(Function.identity())
+                            );
+                }))
                 .runWith(Sink.seq(), Materializer.createMaterializer(actorSystem))
                 .thenApply(List::ofAll)
                 .toCompletableFuture().join();

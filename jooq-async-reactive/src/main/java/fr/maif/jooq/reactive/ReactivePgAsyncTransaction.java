@@ -21,6 +21,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
+import static fr.maif.jooq.PgAsyncClient.commitIfSuccess;
 import static java.util.function.Function.identity;
 
 import static fr.maif.jooq.reactive.FutureConversions.fromVertx;
@@ -52,45 +53,24 @@ public class ReactivePgAsyncTransaction extends AbstractReactivePgAsyncClient<Sq
         Query query = createQuery(queryFunction);
         log(query);
         AtomicBoolean first = new AtomicBoolean(true);
-
-        return Source.single("")
-                .mapMaterializedValue(__ -> (CompletionStage<PgAsyncTransaction>) CompletableFuture.completedFuture((PgAsyncTransaction) this))
-                .flatMapConcat(dummy -> {
-                    Source<QueryResult, CompletionStage<PgAsyncTransaction>> stream = Source
-                            .unfoldResourceAsync(
-                                    () -> this.client.prepare(toPreparedQuery(query)).map(q -> q.cursor(getBindValues(query))).toCompletionStage(),
-                                    cursor -> {
-                                        if (first.getAndSet(false) || cursor.hasMore()) {
-                                            return cursor.read(fetchSize).map(rs ->
-                                                    Optional.of(List.ofAll(rs)
-                                                            .map(ReactiveRowQueryResult::new)
-                                                            .map(r -> (QueryResult) r))
-                                            ).toCompletionStage();
-                                        } else {
-                                            return CompletableFuture.completedFuture(Optional.empty());
-                                        }
-                                    },
-                                    cursor -> cursor.close().map(Done.getInstance()).toCompletionStage()
-                            )
-                            .mapConcat(l -> l)
-                            .watchTermination((tx, d) -> d.handle((__, e) -> {
-                                        if (e != null) {
-                                            return this.rollback()
-                                                    .map(any -> (PgAsyncTransaction) this)
-                                                    .toCompletableFuture();
-                                        } else {
-                                            if (closeTx) {
-                                                return this.commit()
-                                                        .map(any -> (PgAsyncTransaction) this)
-                                                        .toCompletableFuture();
-                                            } else {
-                                                return CompletableFuture.completedFuture((PgAsyncTransaction) this);
-                                            }
-                                        }
-                                    })
-                                            .thenCompose(identity())
-                            );
-                    return stream;
-                });
+        return Source
+                .unfoldResourceAsync(
+                        () -> this.client.prepare(toPreparedQuery(query)).map(q -> q.cursor(getBindValues(query))).toCompletionStage(),
+                        cursor -> {
+                            if (first.getAndSet(false) || cursor.hasMore()) {
+                                return cursor.read(fetchSize).map(rs ->
+                                        Optional.of(List.ofAll(rs)
+                                                .map(ReactiveRowQueryResult::new)
+                                                .map(r -> (QueryResult) r))
+                                ).toCompletionStage();
+                            } else {
+                                return CompletableFuture.completedFuture(Optional.empty());
+                            }
+                        },
+                        cursor -> cursor.close().map(Done.getInstance()).toCompletionStage()
+                )
+                .mapConcat(l -> l)
+                .<CompletionStage<PgAsyncTransaction>>mapMaterializedValue(__ -> CompletableFuture.completedFuture(this))
+                .watchTermination(commitIfSuccess(closeTx, this));
     }
 }
