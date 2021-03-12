@@ -4,14 +4,11 @@ name := "jooq-async"
 organization := "fr.maif"
 
 scalaVersion := "2.12.12"
+crossScalaVersions := List("2.13.5", "2.12.13")
 
-val res = Seq(
-  Resolver.jcenterRepo,
-  Resolver.bintrayRepo("maif-jooq-async", "maven")
-)
-
-
-resolvers ++= res
+usePgpKeyHex("01BA0C89CEC406826F7680A162D9B4F3D67419B7")
+sonatypeRepository := "https://s01.oss.sonatype.org/service/local"
+sonatypeCredentialHost := "s01.oss.sonatype.org"
 
 lazy val root = (project in file("."))
   .aggregate(
@@ -21,22 +18,20 @@ lazy val root = (project in file("."))
     `jooq-async-reactive`
   )
   .enablePlugins(NoPublish, GitVersioning, GitBranchPrompt)
-  .disablePlugins(BintrayPlugin)
+  .settings(
+    skip in publish := true
+  )
 
 lazy val `jooq-async-api` = project
-  .settings(publishCommonsSettings: _*)
 
 lazy val `jooq-async-api-tck` = project
   .dependsOn(`jooq-async-api`)
-  .settings(publishCommonsSettings: _*)
 
 lazy val `jooq-async-jdbc` = project
   .dependsOn(`jooq-async-api`, `jooq-async-api-tck` %  "compile->test")
-  .settings(publishCommonsSettings: _*)
 
 lazy val `jooq-async-reactive` = project
   .dependsOn(`jooq-async-api`, `jooq-async-api-tck` %  "compile->test")
-  .settings(publishCommonsSettings: _*)
 
 
 javacOptions in Compile ++= Seq("-source", "8", "-target", "8", "-Xlint:unchecked", "-Xlint:deprecation")
@@ -60,11 +55,9 @@ releaseProcess := Seq[ReleaseStep](
 
 lazy val githubRepo = "maif/jooq-async"
 
-lazy val publishCommonsSettings = Seq(
+inThisBuild(List(
   homepage := Some(url(s"https://github.com/$githubRepo")),
   startYear := Some(2020),
-  bintrayOmitLicense := true,
-  crossPaths := false,
   scmInfo := Some(
     ScmInfo(
       url(s"https://github.com/$githubRepo"),
@@ -80,12 +73,5 @@ lazy val publishCommonsSettings = Seq(
   ),
   releaseCrossBuild := true,
   publishMavenStyle := true,
-  publishArtifact in Test := false,
-  bintrayVcsUrl := Some(s"scm:git:git@github.com:$githubRepo.git"),
-  resolvers ++= res,
-  bintrayOrganization := Some("maif-jooq-async"),
-  bintrayRepository := "maven",
-  pomIncludeRepository := { _ =>
-    false
-  }
-)
+  publishArtifact in Test := false
+))
