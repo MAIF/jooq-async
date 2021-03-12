@@ -1,4 +1,5 @@
 import ReleaseTransformations._
+import sbt.Keys.crossScalaVersions
 import xerial.sbt.Sonatype.autoImport.sonatypeCredentialHost
 
 name := "jooq-async"
@@ -25,31 +26,38 @@ lazy val root = (project in file("."))
 
 lazy val `jooq-async-api` = project
   .settings(
-      sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
-      sonatypeCredentialHost := "s01.oss.sonatype.org"
+    sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
+    sonatypeCredentialHost := "s01.oss.sonatype.org",
+    scalaVersion := "2.12.13",
+    crossScalaVersions := List("2.13.5", "2.12.13")
   )
 
 lazy val `jooq-async-api-tck` = project
   .dependsOn(`jooq-async-api`)
   .settings(
     sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
-    sonatypeCredentialHost := "s01.oss.sonatype.org"
+    sonatypeCredentialHost := "s01.oss.sonatype.org",
+    scalaVersion := "2.12.13",
+    crossScalaVersions := List("2.13.5", "2.12.13")
   )
 
-lazy val `jooq-async-jdbc` = project
-  .dependsOn(`jooq-async-api`, `jooq-async-api-tck` %  "compile->test")
+lazy val `jooq-async-jdbc`     = project
+  .dependsOn(`jooq-async-api`, `jooq-async-api-tck` % "compile->test")
   .settings(
     sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
-    sonatypeCredentialHost := "s01.oss.sonatype.org"
+    sonatypeCredentialHost := "s01.oss.sonatype.org",
+    scalaVersion := "2.12.13",
+    crossScalaVersions := List("2.13.5", "2.12.13")
   )
 
 lazy val `jooq-async-reactive` = project
-  .dependsOn(`jooq-async-api`, `jooq-async-api-tck` %  "compile->test")
+  .dependsOn(`jooq-async-api`, `jooq-async-api-tck` % "compile->test")
   .settings(
     sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
-    sonatypeCredentialHost := "s01.oss.sonatype.org"
+    sonatypeCredentialHost := "s01.oss.sonatype.org",
+    scalaVersion := "2.12.13",
+    crossScalaVersions := List("2.13.5", "2.12.13")
   )
-
 
 javacOptions in Compile ++= Seq("-source", "8", "-target", "8", "-Xlint:unchecked", "-Xlint:deprecation")
 
@@ -70,25 +78,27 @@ releaseProcess := Seq[ReleaseStep](
   pushChanges
 )
 
-lazy val githubRepo = "maif/jooq-async"
+lazy val githubRepo            = "maif/jooq-async"
 
-inThisBuild(List(
-  homepage := Some(url(s"https://github.com/$githubRepo")),
-  startYear := Some(2020),
-  scmInfo := Some(
-    ScmInfo(
-      url(s"https://github.com/$githubRepo"),
-      s"scm:git:https://github.com/$githubRepo.git",
-      Some(s"scm:git:git@github.com:$githubRepo.git")
-    )
-  ),
-  licenses := Seq(("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0"))),
-  developers := List(
-    Developer("alexandre.delegue", "Alexandre Delègue", "", url(s"https://github.com/larousso")),
-    Developer("benjamin.cavy", "Benjamin Cavy", "", url(s"https://github.com/ptitFicus")),
-    Developer("gregory.bevan", "Grégory Bévan", "", url(s"https://github.com/GregoryBevan"))
-  ),
-  releaseCrossBuild := true,
-  publishMavenStyle := true,
-  publishArtifact in Test := false
-))
+inThisBuild(
+  List(
+    homepage := Some(url(s"https://github.com/$githubRepo")),
+    startYear := Some(2020),
+    scmInfo := Some(
+        ScmInfo(
+          url(s"https://github.com/$githubRepo"),
+          s"scm:git:https://github.com/$githubRepo.git",
+          Some(s"scm:git:git@github.com:$githubRepo.git")
+        )
+      ),
+    licenses := Seq(("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0"))),
+    developers := List(
+        Developer("alexandre.delegue", "Alexandre Delègue", "", url(s"https://github.com/larousso")),
+        Developer("benjamin.cavy", "Benjamin Cavy", "", url(s"https://github.com/ptitFicus")),
+        Developer("gregory.bevan", "Grégory Bévan", "", url(s"https://github.com/GregoryBevan"))
+      ),
+    releaseCrossBuild := true,
+    publishMavenStyle := true,
+    publishArtifact in Test := false
+  )
+)
