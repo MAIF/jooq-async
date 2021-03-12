@@ -1,11 +1,11 @@
 
 
-# Reactive jooq API [![travis-badge][]][travis] [![jar-badge][]][jar]
+# Reactive jooq API [![ga-badge][]][ga] [![jar-badge][]][jar]
 
-[travis]:               https://travis-ci.org/MAIF/jooq-async
-[travis-badge]:         https://travis-ci.org/MAIF/jooq-async.svg?branch=master
-[jar]:                  https://bintray.com/maif-jooq-async/maven/jooq-async-api/_latestVersion
-[jar-badge]:            https://api.bintray.com/packages/maif-jooq-async/maven/jooq-async-api/images/download.svg
+[ga]:               https://github.com/MAIF/jooq-async/actions?query=workflow%3ABuild
+[ga-badge]:         https://github.com/MAIF/jooq-async/workflows/Build/badge.svg
+[jar]:              https://maven-badges.herokuapp.com/maven-central/fr.maif/jooq-async-api_2.13
+[jar-badge]:        https://maven-badges.herokuapp.com/maven-central/fr.maif/jooq-async-api_2.13/badge.svg
 
 This API is a solution to use jooq with reactive clients for RDBMS.  
 
@@ -24,8 +24,8 @@ Jcenter hosts this library.
 ```xml
 <dependency>
   <groupId>fr.maif</groupId>
-  <artifactId>jooq-async-jdbc</artifactId>
-  <version>1.0.0</version>
+  <artifactId>jooq-async-jdbc_2.13</artifactId>
+    <version>${version}</version>
 </dependency>
 ```
 
@@ -34,21 +34,21 @@ OR
 ```xml
 <dependency>
   <groupId>fr.maif</groupId>
-  <artifactId>jooq-async-reactive</artifactId>
-  <version>1.0.0</version>
+  <artifactId>jooq-async-reactive_2.13</artifactId>
+  <version>${version}</version>
 </dependency>
 ``` 
 
 ### Gradle
 
 ```gradle
-implementation 'fr.maif:jooq-async-api:1.0.0'
+implementation "fr.maif:jooq-async-api_2.13:${version}"
 ```
 
 OR
 
 ```gradle
-implementation 'fr.maif:jooq-async-reactive:1.0.0'
+implementation "fr.maif:jooq-async-reactive_2.13:${version}"
 ```
 
 ## The API 
