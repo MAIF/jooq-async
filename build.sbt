@@ -1,4 +1,5 @@
 import ReleaseTransformations._
+import xerial.sbt.Sonatype.autoImport.sonatypeCredentialHost
 
 name := "jooq-async"
 organization := "fr.maif"
@@ -23,15 +24,31 @@ lazy val root = (project in file("."))
   )
 
 lazy val `jooq-async-api` = project
+  .settings(
+      sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
+      sonatypeCredentialHost := "s01.oss.sonatype.org"
+  )
 
 lazy val `jooq-async-api-tck` = project
   .dependsOn(`jooq-async-api`)
+  .settings(
+    sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
+    sonatypeCredentialHost := "s01.oss.sonatype.org"
+  )
 
 lazy val `jooq-async-jdbc` = project
   .dependsOn(`jooq-async-api`, `jooq-async-api-tck` %  "compile->test")
+  .settings(
+    sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
+    sonatypeCredentialHost := "s01.oss.sonatype.org"
+  )
 
 lazy val `jooq-async-reactive` = project
   .dependsOn(`jooq-async-api`, `jooq-async-api-tck` %  "compile->test")
+  .settings(
+    sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
+    sonatypeCredentialHost := "s01.oss.sonatype.org"
+  )
 
 
 javacOptions in Compile ++= Seq("-source", "8", "-target", "8", "-Xlint:unchecked", "-Xlint:deprecation")
