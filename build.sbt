@@ -4,7 +4,7 @@ import xerial.sbt.Sonatype.autoImport.sonatypeCredentialHost
 name := "jooq-async"
 organization := "fr.maif"
 
-scalaVersion := "2.12.12"
+scalaVersion := "2.12.13"
 crossScalaVersions := List("2.13.5", "2.12.13")
 
 usePgpKeyHex("01BA0C89CEC406826F7680A162D9B4F3D67419B7")
