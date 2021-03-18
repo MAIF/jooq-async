@@ -8,6 +8,7 @@ import io.vavr.Tuple;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;
 import io.vavr.concurrent.Future;
+import io.vertx.core.VertxException;
 import io.vertx.sqlclient.SqlConnection;
 import io.vertx.sqlclient.Transaction;
 import org.jooq.Record;
@@ -40,12 +41,20 @@ public class ReactivePgAsyncTransaction extends AbstractReactivePgAsyncClient<Sq
 
     @Override
     public Future<Tuple0> commit() {
-        return fromVertx(transaction.commit().flatMap(__ -> client.close())).map(__ -> Tuple.empty());
+        return fromVertx(transaction.commit()
+                .flatMap(__ -> client.close()).recover(__ -> client.close()))
+                .map(__ -> Tuple.empty());
     }
 
     @Override
     public Future<Tuple0> rollback() {
-        return fromVertx(transaction.rollback().flatMap(__ -> client.close())).map(__ -> Tuple.empty());
+        return fromVertx(
+                transaction
+                        .rollback()
+                        .flatMap(__ -> client.close())
+                        .recover(__ -> client.close())
+                )
+                .map(__ -> Tuple.empty());
     }
 
     @Override
