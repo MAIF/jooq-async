@@ -93,6 +93,9 @@ public abstract class AbstractReactivePgAsyncClient<Client extends SqlClient> im
     @Override
     public Future<Long> executeBatch(Function<DSLContext, List<? extends Query>> queryFunction) {
         List<? extends Query> queries = queryFunction.apply(DSL.using(configuration));
+        if (queries.isEmpty()) {
+            return Future.successful(0L);
+        }
         return queries.foldLeft(Future.successful(0L), (acc, query) ->
                 acc.flatMap(count -> {
                     log(query);
@@ -106,6 +109,9 @@ public abstract class AbstractReactivePgAsyncClient<Client extends SqlClient> im
 
     @Override
     public Future<Long> executeBatch(Function<DSLContext, ? extends Query> queryFunction, List<List<Object>> values) {
+        if (values.isEmpty()) {
+            return Future.successful(0L);
+        }
         Promise<RowSet<Row>> rowFuture = Promise.make();
         try {
             Query query = queryFunction.apply(DSL.using(configuration));
