@@ -1,7 +1,7 @@
 package fr.maif.jooq.jdbc;
 
-import akka.NotUsed;
 import akka.stream.javadsl.Source;
+import fr.maif.jooq.PgAsyncClient;
 import io.vavr.Tuple0;
 import io.vavr.Tuple;
 import fr.maif.jooq.PgAsyncTransaction;
@@ -15,8 +15,13 @@ import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
 
 import java.sql.Connection;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
+
+import static fr.maif.jooq.PgAsyncClient.commitIfSuccess;
+import static java.util.function.Function.identity;
 
 public class JdbcPgAsyncTransaction extends AbstractJdbcPgAsyncClient implements PgAsyncTransaction {
 
@@ -52,10 +57,15 @@ public class JdbcPgAsyncTransaction extends AbstractJdbcPgAsyncClient implements
     }
 
     @Override
-    public <Q extends Record> Source<QueryResult, NotUsed> stream(Integer fetchSize, Function<DSLContext, ? extends ResultQuery<Q>> queryFunction) {
-        return Source
-                .fromIterator(() -> queryFunction.apply(client).stream().iterator())
-                .async("jdbc-execution-context")
-                .map(JooqQueryResult::new);
+    public <Q extends Record> Source<QueryResult, CompletionStage<PgAsyncTransaction>> stream(Integer fetchSize, boolean closeTx, Function<DSLContext, ? extends ResultQuery<Q>> queryFunction) {
+        return Source.single("")
+                .mapMaterializedValue(__ -> (CompletionStage<PgAsyncTransaction>) CompletableFuture.completedFuture((PgAsyncTransaction) this))
+                .flatMapConcat(dummy -> Source
+                        .fromIterator(() -> queryFunction.apply(client).stream().iterator())
+                        .async("jdbc-execution-context")
+                        .map(JooqQueryResult::new)
+                        .map(QueryResult.class::cast)
+                        .watchTermination(commitIfSuccess(closeTx, this))
+                );
     }
 }
