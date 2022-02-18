@@ -1,21 +1,22 @@
 package fr.maif.jooq.reactive;
 
 import fr.maif.jooq.QueryResult;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.pgclient.data.*;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.data.Numeric;
-import org.jooq.*;
 import org.jooq.Record;
-import org.jooq.impl.DefaultDataType;
-import org.jooq.impl.SQLDataType;
+import org.jooq.*;
 import org.jooq.tools.Convert;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
+import java.time.*;
 import java.util.Arrays;
+import java.util.UUID;
 
 
 public class ReactiveRowQueryResult implements QueryResult {
@@ -28,7 +29,13 @@ public class ReactiveRowQueryResult implements QueryResult {
 
     @Override
     public <T> T get(Field<T> field) {
-        return handleValue(current.getValue(field.getName()), field.getConverter());
+        if (isSupportedClass(field.getConverter().fromType())) {
+            Object value = current.get(field.getConverter().fromType(), field.getName());
+            return handleValue(value, field.getConverter());
+        } else {
+            Object value = current.getValue(field.getName());
+            return handleValue(value, field.getConverter());
+        }
     }
 
     @Override
@@ -111,6 +118,122 @@ public class ReactiveRowQueryResult implements QueryResult {
         }
 
         return ((Converter<Object, T>) converter).from(value);
+    }
+
+    public <T> boolean isSupportedClass(Class<T> type) {
+        if (type.isArray()) {
+            Class<?> componentType = type.getComponentType();
+            if (componentType == Boolean.class) {
+                return true;
+            } else if (componentType == Short.class) {
+                return true;
+            } else if (componentType == Integer.class) {
+                return true;
+            } else if (componentType == Long.class) {
+                return true;
+            } else if (componentType == Float.class) {
+                return true;
+            } else if (componentType == Double.class) {
+                return true;
+            } else if (componentType == String.class) {
+                return true;
+            } else if (componentType == Buffer.class) {
+                return true;
+            } else if (componentType == UUID.class) {
+                return true;
+            } else if (componentType == LocalDate.class) {
+                return true;
+            } else if (componentType == LocalTime.class) {
+                return true;
+            } else if (componentType == OffsetTime.class) {
+                return true;
+            } else if (componentType == LocalDateTime.class) {
+                return true;
+            } else if (componentType == OffsetDateTime.class) {
+                return true;
+            } else if (componentType == Interval.class) {
+                return true;
+            } else if (componentType == Numeric.class) {
+                return true;
+            } else if (componentType == Point.class) {
+                return true;
+            } else if (componentType == Line.class) {
+                return true;
+            } else if (componentType == LineSegment.class) {
+                return true;
+            } else if (componentType == Path.class) {
+                return true;
+            } else if (componentType == Polygon.class) {
+                return true;
+            } else if (componentType == Circle.class) {
+                return true;
+            } else if (componentType == Interval.class) {
+                return true;
+            } else if (componentType == Box.class) {
+                return true;
+            } else if (componentType == Object.class) {
+                return true;
+            } else if (componentType.isEnum()) {
+                return true;
+            }
+        } else {
+            if (type == Boolean.class) {
+                return true;
+            } else if (type == Short.class) {
+                return true;
+            } else if (type == Integer.class) {
+                return true;
+            } else if (type == Long.class) {
+                return true;
+            } else if (type == Float.class) {
+                return true;
+            } else if (type == Double.class) {
+                return true;
+            } else if (type == Numeric.class) {
+                return true;
+            } else if (type == String.class) {
+                return true;
+            } else if (type == Buffer.class) {
+                return true;
+            } else if (type == UUID.class) {
+                return true;
+            } else if (type == LocalDate.class) {
+                return true;
+            } else if (type == LocalTime.class) {
+                return true;
+            } else if (type == OffsetTime.class) {
+                return true;
+            } else if (type == LocalDateTime.class) {
+                return true;
+            } else if (type == OffsetDateTime.class) {
+                return true;
+            } else if (type == Interval.class) {
+                return true;
+            } else if (type == Point.class) {
+                return true;
+            } else if (type == Line.class) {
+                return true;
+            } else if (type == LineSegment.class) {
+                return true;
+            } else if (type == Path.class) {
+                return true;
+            } else if (type == Polygon.class) {
+                return true;
+            } else if (type == Circle.class) {
+                return true;
+            } else if (type == Box.class) {
+                return true;
+            } else if (type == JsonObject.class) {
+                return true;
+            } else if (type == JsonArray.class) {
+                return true;
+            } else if (type == Object.class) {
+                return true;
+            } else if (type.isEnum()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public <T extends Record> T toRecord(Table<T> table) {

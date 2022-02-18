@@ -76,6 +76,7 @@ public abstract class AbstractPgAsyncPoolTest {
     protected Field<JsonNode> meta = field("meta", JSON);
     protected Field<Timestamp> created = field("created", TIMESTAMP);
     protected Field<BigDecimal> bigDecimal = field("number", BigDecimal.class);
+    protected Field<Long> numberLong = field("numberlong", Long.class);
 
     @Before
     public void setUp() {
@@ -98,6 +99,7 @@ public abstract class AbstractPgAsyncPoolTest {
                     .column(meta)
                     .column(created)
                     .column(bigDecimal)
+                    .column(numberLong)
                     .execute();
 
             dslContext.createTableIfNotExists(Person.PERSON)
@@ -282,6 +284,24 @@ public abstract class AbstractPgAsyncPoolTest {
 
         Option<BigDecimal> res = futureResult.get();
         assertThat(res).isEqualTo(Some(bd));
+    }
+
+
+    @Test
+    public void queryOneAsLong() {
+        pgAsyncPool.executeBatch(dsl ->
+                List.range(0, 10).map(i -> dslContext
+                        .insertInto(table)
+                        .set(name, "name-"+i)
+                        .set(numberLong, 1L)
+                )
+        ).get();
+
+        Future<Option<Long>> futureResult = pgAsyncPool
+                .queryOne(dsl -> dsl.select().from(table).where(name.eq("name-1")))
+                .map(mayBeResult -> mayBeResult.map(row -> row.get(numberLong)));
+
+        assertThat(futureResult.get()).isEqualTo(Some(1L));
     }
 
 
