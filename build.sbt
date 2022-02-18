@@ -59,7 +59,7 @@ lazy val `jooq-async-reactive` = project
     crossScalaVersions := List("2.13.5", "2.12.13")
   )
 
-javacOptions in Compile ++= Seq("-source", "8", "-target", "8", "-Xlint:unchecked", "-Xlint:deprecation")
+javacOptions in Compile ++= Seq("-source", "11", "-target", "11", "-Xlint:unchecked", "-Xlint:deprecation")
 
 testFrameworks := Seq(TestFrameworks.JUnit)
 testOptions += Tests.Argument(TestFrameworks.JUnit, "-v")
