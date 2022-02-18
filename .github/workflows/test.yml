@@ -11,7 +11,7 @@ jobs:
         with:
           java-version: 15
       - name: Start docker
-        run: docker-compose -f docker-compose.test.yml up -d
+        run: docker pull postgres:14
       - name: Build
         id: build_server
         run: sbt publishLocal 
