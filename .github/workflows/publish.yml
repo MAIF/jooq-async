@@ -14,7 +14,9 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 15
-      - uses: olafurpg/setup-scala@v10
+      - uses: olafurpg/setup-scala@v11
+        with:
+          java-version: adopt@1.11
       - uses: olafurpg/setup-gpg@v3
       - run: sbt ci-release
         env:
