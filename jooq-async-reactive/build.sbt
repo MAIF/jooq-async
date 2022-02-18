@@ -11,7 +11,8 @@ libraryDependencies ++= Seq(
   "io.vavr"                         % "vavr"                      % vavrVersion,
   "org.jooq"                        % "jooq"                      % _jooqVersion,
   "com.fasterxml.jackson.core"      % "jackson-databind"          % jacksonVersion,
+  "com.ongres.scram"                % "client"                    % "2.1",
   "org.slf4j"                       % "slf4j-api"                 % "1.7.26",
-  "io.vertx"                        % "vertx-pg-client"           % "4.1.0",
+  "io.vertx"                        % "vertx-pg-client"           % "4.2.5",
   "com.novocode"                    % "junit-interface" % "0.11"  % Test
 )

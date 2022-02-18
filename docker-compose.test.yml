@@ -1,8 +1,0 @@
-version: '2'
-services:
-  postgres_test:
-    image: postgres:11.2
-    volumes:
-    - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-    ports:
-    - 5557:5432
