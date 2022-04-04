@@ -111,6 +111,15 @@ public class ReactiveRowQueryResult implements QueryResult {
             return ((Converter<Timestamp, T>) converter).from(Timestamp.valueOf((LocalDateTime) value));
         }
 
+        if (value instanceof String && converter.fromType().equals(JSON.class)) {
+            Converter<JSON, T> converterCast = (Converter<JSON, T>) converter;
+            return converterCast.from(JSON.json( (String) value));
+        }
+        if (value instanceof String && converter.fromType().equals(JSONB.class)) {
+            Converter<JSONB, T> converterCast = (Converter<JSONB, T>) converter;
+            return converterCast.from(JSONB.jsonb( (String) value));
+        }
+
         // Quand on lit un champ json avec la valeur null (la valeur JSON nulle, pas celle de la BDD)
         // la valeur lue est juste un Object (pas une sous classe)
         if(value.getClass().equals(Object.class)) {
