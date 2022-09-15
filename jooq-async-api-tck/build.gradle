@@ -1,0 +1,22 @@
+plugins {
+    id 'java'
+    id 'maven-publish'
+}
+
+group = 'fr.maif'
+
+dependencies {
+
+    implementation project(':jooq-async-api')
+
+    implementation("io.vavr:vavr:$vavrVersion")
+    implementation("org.jooq:jooq:$_jooqVersion")
+    implementation("com.typesafe.akka:akka-stream_$scalaVersion:$akkaVersion")
+    implementation("com.fasterxml.jackson.core:jackson-databind:$jacksonVersion")
+    implementation("io.vavr:vavr-jackson:$vavrVersion")
+    implementation("com.novocode:junit-interface:0.11")
+    implementation("org.assertj:assertj-core:3.10.0")
+    implementation("org.postgresql:postgresql:42.2.5")
+    implementation("org.mockito:mockito-core:2.22.0")
+    implementation("org.testcontainers:postgresql:1.16.3")
+}

@@ -8,6 +8,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import java.util.concurrent.Executors;
 
 public class JdbcAsyncPoolTest extends AbstractPgAsyncPoolTest {
+
     @Override
     public PgAsyncPool pgAsyncPool(PostgreSQLContainer<?> postgreSQLContainer) {
         PGSimpleDataSource pgSimpleDataSource = new PGSimpleDataSource();
