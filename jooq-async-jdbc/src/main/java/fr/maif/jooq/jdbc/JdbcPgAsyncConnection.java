@@ -1,18 +1,18 @@
 package fr.maif.jooq.jdbc;
 
-import akka.NotUsed;
-import akka.stream.javadsl.Source;
-import io.vavr.Tuple;
-import io.vavr.Tuple0;
 import fr.maif.jooq.PgAsyncConnection;
 import fr.maif.jooq.PgAsyncTransaction;
 import fr.maif.jooq.QueryResult;
+import io.vavr.Tuple;
+import io.vavr.Tuple0;
 import io.vavr.concurrent.Future;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.ResultQuery;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.sql.Connection;
 import java.util.concurrent.Executor;
@@ -44,10 +44,12 @@ public class JdbcPgAsyncConnection extends AbstractJdbcPgAsyncClient implements 
     }
 
     @Override
-    public <Q extends Record> Source<QueryResult, NotUsed> stream(Integer fetchSize, Function<DSLContext, ? extends ResultQuery<Q>> queryFunction) {
-        return Source.fromSourceCompletionStage(begin().map(pgAsyncTransaction ->
-                pgAsyncTransaction.stream(fetchSize, queryFunction)).toCompletableFuture()
-        ).mapMaterializedValue(__ -> NotUsed.notUsed());
+    public <Q extends Record> Flux<QueryResult> stream(Integer fetchSize, Function<DSLContext, ? extends ResultQuery<Q>> queryFunction) {
+        return Mono.fromCompletionStage(begin().toCompletableFuture())
+                .flux()
+                .concatMap(pgAsyncTransaction ->
+                        pgAsyncTransaction.stream(fetchSize, queryFunction)
+                );
     }
 
 }

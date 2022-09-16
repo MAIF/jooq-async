@@ -13,6 +13,8 @@ import org.jooq.Configuration;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.ResultQuery;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.function.Function;
 
@@ -36,23 +38,18 @@ public class ReactivePgAsyncConnection extends AbstractReactivePgAsyncClient<Sql
     }
 
     @Override
-    public <Q extends Record> Source<QueryResult, NotUsed> stream(Integer fetchSize, Function<DSLContext, ? extends ResultQuery<Q>> queryFunction) {
-
-        return Source.completionStage(client.begin().toCompletionStage())
-                .flatMapConcat(tx -> {
+    public <Q extends Record> Flux<QueryResult> stream(Integer fetchSize, Function<DSLContext, ? extends ResultQuery<Q>> queryFunction) {
+        return Mono.fromCompletionStage(client.begin().toCompletionStage())
+                .flatMapMany(tx -> {
                             final ReactivePgAsyncTransaction pgAsyncTransaction = new ReactivePgAsyncTransaction(client, tx, configuration);
                             return pgAsyncTransaction
                                     .stream(fetchSize, queryFunction)
-                                    .watchTermination((nu, d) ->
-                                            d.handleAsync((__, e) -> {
-                                                if (e != null) {
-                                                    return pgAsyncTransaction.rollback().toCompletableFuture();
-                                                } else {
-                                                    return pgAsyncTransaction.commit().toCompletableFuture();
-                                                }
-                                            })
-                                    )
-                                    .mapMaterializedValue(__ -> NotUsed.notUsed());
+                                    .doOnComplete(() -> {
+                                        pgAsyncTransaction.commit();
+                                    })
+                                    .doOnError(e -> {
+                                        pgAsyncTransaction.rollback();
+                                    });
                         });
     }
 

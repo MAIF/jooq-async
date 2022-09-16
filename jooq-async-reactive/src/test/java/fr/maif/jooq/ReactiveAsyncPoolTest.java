@@ -9,7 +9,10 @@ import org.jooq.Configuration;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DefaultConfiguration;
 import org.junit.After;
+import org.junit.Test;
 import org.testcontainers.containers.PostgreSQLContainer;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 public class ReactiveAsyncPoolTest extends AbstractPgAsyncPoolTest {
 

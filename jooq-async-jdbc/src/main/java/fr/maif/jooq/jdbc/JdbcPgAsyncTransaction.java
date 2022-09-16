@@ -1,11 +1,9 @@
 package fr.maif.jooq.jdbc;
 
-import akka.NotUsed;
-import akka.stream.javadsl.Source;
-import io.vavr.Tuple0;
-import io.vavr.Tuple;
 import fr.maif.jooq.PgAsyncTransaction;
 import fr.maif.jooq.QueryResult;
+import io.vavr.Tuple;
+import io.vavr.Tuple0;
 import io.vavr.concurrent.Future;
 import io.vavr.control.Try;
 import org.jooq.DSLContext;
@@ -13,6 +11,8 @@ import org.jooq.Record;
 import org.jooq.ResultQuery;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
+import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Schedulers;
 
 import java.sql.Connection;
 import java.util.concurrent.Executor;
@@ -52,10 +52,10 @@ public class JdbcPgAsyncTransaction extends AbstractJdbcPgAsyncClient implements
     }
 
     @Override
-    public <Q extends Record> Source<QueryResult, NotUsed> stream(Integer fetchSize, Function<DSLContext, ? extends ResultQuery<Q>> queryFunction) {
-        return Source
-                .fromIterator(() -> queryFunction.apply(client).stream().iterator())
-                .async("jdbc-execution-context")
+    public <Q extends Record> Flux<QueryResult> stream(Integer fetchSize, Function<DSLContext, ? extends ResultQuery<Q>> queryFunction) {
+        return Flux
+                .fromIterable(() -> queryFunction.apply(client).stream().iterator())
+                .publishOn(Schedulers.parallel())
                 .map(JooqQueryResult::new);
     }
 }

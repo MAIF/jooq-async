@@ -1,13 +1,13 @@
 package fr.maif.jooq;
 
-import akka.NotUsed;
-import akka.stream.javadsl.Source;
 import io.vavr.concurrent.Future;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.ResultQuery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.function.Function;
 
@@ -29,24 +29,21 @@ public interface PgAsyncPool extends PgAsyncClient {
     }
 
     @Override
-    default <Q extends Record> Source<QueryResult, NotUsed> stream(Integer fetchSize, Function<DSLContext, ? extends ResultQuery<Q>> queryFunction) {
-        return Source.completionStageSource(
-                connection().flatMap(c ->
-                    c.begin().map(pgAsyncTransaction -> pgAsyncTransaction
-                        .stream(fetchSize, queryFunction)
-                        .watchTermination((nu, d) ->
-                                d.handleAsync((__, e) -> {
-                                    if (e != null) {
-                                        LOGGER.error("Stream terminated with error", e);
-                                        return pgAsyncTransaction.rollback().toCompletableFuture();
-                                    } else {
-                                        LOGGER.debug("Stream terminated correctly");
-                                        return pgAsyncTransaction.commit().toCompletableFuture();
-                                    }
+    default <Q extends Record> Flux<QueryResult> stream(Integer fetchSize, Function<DSLContext, ? extends ResultQuery<Q>> queryFunction) {
+        return Mono.fromCompletionStage(connection().toCompletableFuture())
+                .flux()
+                .concatMap(c -> Mono.fromCompletionStage(c.begin().toCompletableFuture()).flux()
+                        .concatMap(pgAsyncTransaction -> pgAsyncTransaction
+                                .stream(fetchSize, queryFunction)
+                                .doOnComplete(() -> {
+                                    LOGGER.debug("Stream terminated correctly");
+                                    pgAsyncTransaction.commit();
+                                })
+                                .doOnError(e -> {
+                                    LOGGER.error("Stream terminated with error", e);
+                                    pgAsyncTransaction.rollback();
                                 })
                         )
-                    )
-                ).toCompletableFuture()
-        ).mapMaterializedValue(__ -> NotUsed.notUsed());
+                );
     }
 }

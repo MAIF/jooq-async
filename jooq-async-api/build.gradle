@@ -8,7 +8,7 @@ group = 'fr.maif'
 dependencies {
     implementation("io.vavr:vavr:$vavrVersion")
     implementation("org.jooq:jooq:$_jooqVersion")
-    implementation("com.typesafe.akka:akka-stream_$scalaVersion:$akkaVersion")
+    implementation("io.projectreactor:reactor-core:3.4.23")
     implementation("org.slf4j:slf4j-api:1.7.30")
     implementation("org.slf4j:slf4j-log4j12:1.7.30")
 }
