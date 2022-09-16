@@ -1,39 +1,35 @@
 package fr.maif.jooq;
 
-import akka.NotUsed;
-import akka.actor.ActorSystem;
-import akka.stream.Materializer;
-import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.typesafe.config.ConfigFactory;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.List;
 import io.vavr.collection.Map;
 import io.vavr.concurrent.Future;
 import io.vavr.control.Option;
-import org.jooq.*;
+import io.vavr.jackson.datatype.VavrModule;
+import org.jooq.DSLContext;
+import org.jooq.DataType;
+import org.jooq.Field;
 import org.jooq.Record;
+import org.jooq.SQLDialect;
+import org.jooq.Table;
 import org.jooq.conf.Settings;
 import org.jooq.impl.DSL;
 import org.jooq.impl.SQLDataType;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.postgresql.ds.PGSimpleDataSource;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.utility.DockerImageName;
+import reactor.core.publisher.Flux;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.Random;
-import java.util.concurrent.atomic.AtomicReference;
-
-import io.vavr.jackson.datatype.VavrModule;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.utility.DockerImageName;
 
 import static io.vavr.API.Some;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -52,15 +48,6 @@ public abstract class AbstractPgAsyncPoolTest {
         mapper.registerModule(new VavrModule());
     }
 
-    protected ActorSystem actorSystem = ActorSystem.create("test", ConfigFactory.parseString(
-            "jdbc-execution-context {\n" +
-                    "  type = Dispatcher\n" +
-                    "  executor = \"thread-pool-executor\"\n" +
-                    "  throughput = 1\n" +
-                    "  thread-pool-executor {\n" +
-                    "    fixed-pool-size = 5\n" +
-                    "  }\n" +
-                    "}"));
     protected PGSimpleDataSource dataSource;
     protected DSLContext dslContext;
 
@@ -312,13 +299,13 @@ public abstract class AbstractPgAsyncPoolTest {
                 names.map(n -> dslContext.insertInto(table).set(name, n))
         ).get();
 
-        Source<String, NotUsed> stream = pgAsyncPool
+        Flux<String> stream = pgAsyncPool
                 .stream(10, dsl -> dsl.select(name).from(table))
                 .map(q -> q.get(name));
         List<String> res = stream
-                .runWith(Sink.seq(), Materializer.createMaterializer(actorSystem))
-                .thenApply(List::ofAll)
-                .toCompletableFuture().join();
+                .collectList()
+                .map(List::ofAll)
+                .block();
         assertThat(res).containsExactlyInAnyOrder(names.toJavaArray(String[]::new));
     }
 

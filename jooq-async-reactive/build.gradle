@@ -12,6 +12,7 @@ dependencies {
     implementation("io.vavr:vavr:$vavrVersion")
     implementation("org.jooq:jooq:$_jooqVersion")
     implementation("com.fasterxml.jackson.core:jackson-databind:$jacksonVersion")
+    implementation("io.projectreactor:reactor-core:3.4.23")
     implementation("com.typesafe.akka:akka-stream_$scalaVersion:$akkaVersion")
     implementation("com.ongres.scram:client:2.1")
     implementation("org.slf4j:slf4j-api:1.7.26")

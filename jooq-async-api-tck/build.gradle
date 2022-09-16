@@ -11,7 +11,7 @@ dependencies {
 
     implementation("io.vavr:vavr:$vavrVersion")
     implementation("org.jooq:jooq:$_jooqVersion")
-    implementation("com.typesafe.akka:akka-stream_$scalaVersion:$akkaVersion")
+    implementation("io.projectreactor:reactor-core:3.4.23")
     implementation("com.fasterxml.jackson.core:jackson-databind:$jacksonVersion")
     implementation("io.vavr:vavr-jackson:$vavrVersion")
     implementation("com.novocode:junit-interface:0.11")
