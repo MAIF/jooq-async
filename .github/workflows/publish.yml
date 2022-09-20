@@ -6,10 +6,15 @@ jobs:
   publish:
     runs-on: ubuntu-20.04
     steps:
+      - name: Decode GPG Key
+        run: |
+          mkdir -p ~/.gradle/
+          echo "${{secrets.PGP_SECRET}}" > ~/.gradle/secring.gpg.b64
+          base64 -d ~/.gradle/secring.gpg.b64 > ~/.gradle/secring.gpg
       - uses: actions/checkout@v2.3.4
         with:
           fetch-depth: 0
-      - run: ./gradlew publish
+        run: ./gradlew publish -Psigning.keyId=F07E3809 -Psigning.password=${{secrets.PGP_PASSPHRASE}} -Psigning.secretKeyRingFile=$(echo ~/.gradle/secring.gpg) --warn --stacktrace
         env:
           PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
           PGP_SECRET: ${{ secrets.PGP_SECRET }}
