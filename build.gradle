@@ -1,14 +1,25 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.vanniktech:gradle-maven-publish-plugin:0.22.0'
+    }
+}
+
 plugins {
     id 'net.researchgate.release' version '3.0.0'
     id 'java'
     id  'maven-publish'
     id 'signing'
+    id("io.github.gradle-nexus.publish-plugin") version "1.1.0"
 }
 
 subprojects {
     apply plugin: 'java'
     apply plugin: 'maven-publish'
     apply plugin: 'signing'
+    apply plugin: "com.vanniktech.maven.publish"
     group = 'fr.maif'
 
     task sourcesJar(type: Jar) {
