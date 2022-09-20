@@ -3,11 +3,19 @@ package fr.maif.jooq.reactive;
 import fr.maif.jooq.PgAsyncConnection;
 import fr.maif.jooq.PgAsyncPool;
 import fr.maif.jooq.PgAsyncTransaction;
+import fr.maif.jooq.QueryResult;
 import io.vavr.concurrent.Future;
 import io.vertx.pgclient.PgPool;
 import io.vertx.sqlclient.TransactionRollbackException;
 import org.jooq.Configuration;
+import org.jooq.DSLContext;
+import org.jooq.Record;
+import org.jooq.ResultQuery;
+import org.reactivestreams.Publisher;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
+import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 import static fr.maif.jooq.reactive.FutureConversions.fromVertx;
@@ -19,7 +27,7 @@ public class ReactivePgAsyncPool extends AbstractReactivePgAsyncClient<PgPool> i
     }
 
     @Override
-    public <T> Future<T> inTransaction(Function<PgAsyncTransaction, Future<T>> action) {
+    public <T> CompletionStage<T> inTransaction(Function<PgAsyncTransaction, CompletionStage<T>> action) {
         return FutureConversions.fromVertx(client.getConnection()
                 .flatMap(conn -> conn
                         .begin()
@@ -43,17 +51,34 @@ public class ReactivePgAsyncPool extends AbstractReactivePgAsyncClient<PgPool> i
     }
 
     @Override
-    public Future<PgAsyncConnection> connection() {
-        return fromVertx(client.getConnection()).map(c -> new ReactivePgAsyncConnection(c, configuration));
+    public CompletionStage<PgAsyncConnection> connection() {
+        return fromVertx(client.getConnection()).thenApply(c -> new ReactivePgAsyncConnection(c, configuration));
     }
 
     @Override
-    public Future<PgAsyncTransaction> begin() {
+    public CompletionStage<PgAsyncTransaction> begin() {
         return fromVertx(client.getConnection())
-                .flatMap(c -> fromVertx(c.begin())
-                        .map(t -> new ReactivePgAsyncTransaction(c, t, configuration))
+                .thenCompose(c -> fromVertx(c.begin())
+                        .thenApply(t -> new ReactivePgAsyncTransaction(c, t, configuration))
                 );
     }
 
-
+    @Override
+    public <Q extends Record> Publisher<QueryResult> stream(Integer fetchSize, Function<DSLContext, ? extends ResultQuery<Q>> queryFunction) {
+        return Mono.fromCompletionStage(connection())
+                .flux()
+                .concatMap(c -> Mono.fromCompletionStage(c.begin())
+                        .flux()
+                        .concatMap(pgAsyncTransaction -> Flux.from(pgAsyncTransaction.stream(fetchSize, queryFunction))
+                                .doOnComplete(() -> {
+                                    LOGGER.debug("Stream terminated correctly");
+                                    pgAsyncTransaction.commit();
+                                })
+                                .doOnError(e -> {
+                                    LOGGER.error("Stream terminated with error", e);
+                                    pgAsyncTransaction.rollback();
+                                })
+                        )
+                );
+    }
 }

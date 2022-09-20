@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
@@ -36,13 +37,13 @@ public class ReactivePgAsyncTransaction extends AbstractReactivePgAsyncClient<Sq
     }
 
     @Override
-    public Future<Tuple0> commit() {
-        return fromVertx(transaction.commit().flatMap(__ -> client.close())).map(__ -> Tuple.empty());
+    public CompletionStage<Void> commit() {
+        return fromVertx(transaction.commit().flatMap(__ -> client.close())).thenRun(() -> {});
     }
 
     @Override
-    public Future<Tuple0> rollback() {
-        return fromVertx(transaction.rollback().flatMap(__ -> client.close())).map(__ -> Tuple.empty());
+    public CompletionStage<Void> rollback() {
+        return fromVertx(transaction.rollback().flatMap(__ -> client.close())).thenRun(() -> {});
     }
 
     @Override

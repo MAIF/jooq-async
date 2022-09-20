@@ -3,11 +3,15 @@ package fr.maif.jooq.jdbc;
 import fr.maif.jooq.PgAsyncClient;
 import fr.maif.jooq.QueryResult;
 import io.vavr.collection.List;
-import io.vavr.concurrent.Future;
 import io.vavr.control.Option;
-import org.jooq.*;
+import org.jooq.DSLContext;
+import org.jooq.Query;
 import org.jooq.Record;
+import org.jooq.ResultQuery;
+import org.jooq.SQLDialect;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 
@@ -24,41 +28,45 @@ public abstract class AbstractJdbcPgAsyncClient implements PgAsyncClient {
     }
 
     @Override
-    public <R extends Record> Future<Option<QueryResult>> queryOne(Function<DSLContext, ? extends ResultQuery<R>> queryFunction) {
-        return Future.of(executor, () ->
-                queryFunction.apply(client).fetchOptional()
-        ).map(r -> Option.ofOptional(r).map(JooqQueryResult::new));
+    public <R extends Record> CompletionStage<Option<QueryResult>> queryOne(Function<DSLContext, ? extends ResultQuery<R>> queryFunction) {
+        return CompletableFuture
+                .supplyAsync(() -> queryFunction.apply(client).fetchOptional(), executor)
+                .thenApply(r -> Option.ofOptional(r).map(JooqQueryResult::new));
     }
 
     @Override
-    public <R extends Record> Future<List<QueryResult>> query(Function<DSLContext, ? extends ResultQuery<R>> queryFunction) {
-        return Future.of(executor, () -> queryFunction.apply(client).fetch())
-                .map(r ->
-                    List.ofAll(r).map(JooqQueryResult::new)
+    public <R extends Record> CompletionStage<List<QueryResult>> query(Function<DSLContext, ? extends ResultQuery<R>> queryFunction) {
+        return CompletableFuture
+                .supplyAsync(() -> queryFunction.apply(client).fetch(), executor)
+                .thenApply(r ->
+                        List.ofAll(r).map(JooqQueryResult::new)
                 );
 
     }
 
     @Override
-    public Future<Integer> execute(Function<DSLContext, ? extends Query> queryFunction) {
-        return Future.of(executor, () -> queryFunction.apply(client).execute());
+    public CompletionStage<Integer> execute(Function<DSLContext, ? extends Query> queryFunction) {
+        return CompletableFuture
+                .supplyAsync(() -> queryFunction.apply(client).execute(), executor);
     }
 
     @Override
-    public Future<Long> executeBatch(Function<DSLContext, List<? extends Query>> queryFunction) {
-        return Future.of(executor, () ->
-                client.batch(queryFunction.apply(client).toJavaList()).execute()
-        ).map(b -> List.ofAll(b).sum().longValue());
+    public CompletionStage<Long> executeBatch(Function<DSLContext, List<? extends Query>> queryFunction) {
+        return CompletableFuture
+                .supplyAsync(() -> client.batch(queryFunction.apply(client).toJavaList()).execute(), executor)
+                .thenApply(b -> List.ofAll(b).sum().longValue());
     }
 
     @Override
-    public Future<Long> executeBatch(Function<DSLContext, ? extends Query> queryFunction, List<List<Object>> values) {
-        return Future.of(executor, () -> {
-            if (values.isEmpty()) {
-                return new int[]{};
-            } else {
-                return values.foldLeft(client.batch(queryFunction.apply(client)), (q, v) -> q.bind(v.toJavaArray(Object[]::new))).execute();
-            }
-        }).map(b -> List.ofAll(b).sum().longValue());
+    public CompletionStage<Long> executeBatch(Function<DSLContext, ? extends Query> queryFunction, List<List<Object>> values) {
+        return CompletableFuture
+                .supplyAsync(() -> {
+                    if (values.isEmpty()) {
+                        return new int[]{};
+                    } else {
+                        return values.foldLeft(client.batch(queryFunction.apply(client)), (q, v) -> q.bind(v.toJavaArray(Object[]::new))).execute();
+                    }
+                }, executor)
+                .thenApply(b -> List.ofAll(b).sum().longValue());
     }
 }

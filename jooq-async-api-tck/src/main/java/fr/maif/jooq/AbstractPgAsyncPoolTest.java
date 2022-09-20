@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.List;
 import io.vavr.collection.Map;
-import io.vavr.concurrent.Future;
 import io.vavr.control.Option;
 import io.vavr.jackson.datatype.VavrModule;
 import org.jooq.DSLContext;
@@ -29,7 +28,10 @@ import reactor.core.publisher.Flux;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.Random;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import static io.vavr.API.Some;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -116,12 +118,12 @@ public abstract class AbstractPgAsyncPoolTest {
 
     @Test
     public void insertInTransaction() {
-        Future<Integer> insertResult = pgAsyncPool.inTransaction(t ->
+        CompletionStage<Integer> insertResult = pgAsyncPool.inTransaction(t ->
                 t.execute(dsl -> dsl.insertInto(table).set(name, "test"))
         );
-        insertResult.get();
+        insertResult.toCompletableFuture().join();
 
-        List<QueryResult> result = pgAsyncPool.query(dsl -> dsl.select(name).from(table)).get();
+        List<QueryResult> result = pgAsyncPool.query(dsl -> dsl.select(name).from(table)).toCompletableFuture().join();
         assertThat(result).hasSize(1);
     }
 
@@ -130,66 +132,72 @@ public abstract class AbstractPgAsyncPoolTest {
         assertThatThrownBy(() ->
                 pgAsyncPool.inTransaction(t -> t
                                 .execute(dsl -> dsl.insertInto(table).set(name, "test"))
-                                .mapTry(__ -> {
-                                    throw new RuntimeException("Oups");
-                                })
+                                .thenCompose(__ ->
+                                    CompletableFuture.failedStage(new RuntimeException("Oups"))
+                                )
                         )
-                        .get()
-        ).hasMessage("Oups");
+                        .toCompletableFuture().join()
+        ).hasMessageContaining("Oups");
 
-        List<QueryResult> result = pgAsyncPool.query(dsl -> dsl.select(name).from(table)).get();
+        List<QueryResult> result = pgAsyncPool.query(dsl -> dsl.select(name).from(table)).toCompletableFuture().join();
         assertThat(result).isEmpty();
     }
 
     @Test
     public void insertManualTransaction() {
-        pgAsyncPool.begin().flatMap(t -> t
+        pgAsyncPool.begin().thenCompose(t -> t
                 .execute(dsl -> dsl.insertInto(table).set(name, "test"))
-                .onSuccess(__ -> t.commit())
-                .onFailure(__ -> t.rollback())
-        ).get();
+                .handle((i, e) ->
+                        e != null ? t.rollback() : t.commit()
+                )
+        ).toCompletableFuture().join();
 
-        List<QueryResult> result = pgAsyncPool.query(dsl -> dsl.select(name).from(table)).get();
+        List<QueryResult> result = pgAsyncPool.query(dsl -> dsl.select(name).from(table)).toCompletableFuture().join();
         assertThat(result).hasSize(1);
     }
 
     @Test
     public void insertManualTransactionWithRollback() {
         assertThatThrownBy(() ->
-                pgAsyncPool.begin().flatMap(t -> t
+                pgAsyncPool.begin().thenCompose(t -> t
                         .execute(dsl -> dsl.insertInto(table).set(name, "test"))
-                        .mapTry(__ -> {
-                            throw new RuntimeException("Oups");
+                        .thenCompose(__ ->
+                            CompletableFuture.failedStage(new RuntimeException("Oups"))
+                        )
+                        .whenComplete((i, e) -> {
+                            if (Objects.nonNull(e)) {
+                                t.rollback();
+                            } else {
+                                t.commit();
+                            }
                         })
-                        .onSuccess(__ -> t.commit())
-                        .onFailure(__ -> t.rollback())
-                ).get()
-        ).hasMessage("Oups");
+                ).toCompletableFuture().join()
+        ).hasMessageContaining("Oups");
 
-        List<QueryResult> result = pgAsyncPool.query(dsl -> dsl.select(name).from(table)).get();
+        List<QueryResult> result = pgAsyncPool.query(dsl -> dsl.select(name).from(table)).toCompletableFuture().join();
         assertThat(result).isEmpty();
     }
 
     @Test
     public void executeBatchAndReadMany() {
         List<String> names = List.range(0, 10).map(i -> "name-" + i);
-        Future<Long> batchResult = pgAsyncPool.executeBatch(
+        CompletionStage<Long> batchResult = pgAsyncPool.executeBatch(
                 dsl -> dslContext.insertInto(table).columns(name).values((String) null),
                 names.map(List::of)
         );
-        batchResult.get();
-        List<String> result = pgAsyncPool.query(dsl -> dsl.select(name).from(table)).get().map(q -> q.get(name));
+        batchResult.toCompletableFuture().join();
+        List<String> result = pgAsyncPool.query(dsl -> dsl.select(name).from(table)).toCompletableFuture().join().map(q -> q.get(name));
         assertThat(result).containsExactly(names.toJavaArray(String[]::new));
     }
 
     @Test
     public void executeBatch2AndReadMany() {
         List<String> names = List.range(0, 10).map(i -> "name-" + i);
-        Future<Long> batchResult = pgAsyncPool.executeBatch(dsl ->
+        CompletionStage<Long> batchResult = pgAsyncPool.executeBatch(dsl ->
                 names.map(n -> dslContext.insertInto(table).set(name, n))
         );
-        batchResult.get();
-        List<String> result = pgAsyncPool.query(dsl -> dsl.select(name).from(table)).get().map(q -> q.get(name));
+        batchResult.toCompletableFuture().join();
+        List<String> result = pgAsyncPool.query(dsl -> dsl.select(name).from(table)).toCompletableFuture().join().map(q -> q.get(name));
         assertThat(result).containsExactly(names.toJavaArray(String[]::new));
     }
 
@@ -197,19 +205,19 @@ public abstract class AbstractPgAsyncPoolTest {
     public void queryOne() {
         pgAsyncPool.executeBatch(dsl ->
                 List.range(0, 10).map(i -> "name-" + i).map(n -> dslContext.insertInto(table).set(name, n))
-        ).get();
+        ).toCompletableFuture().join();
 
-        Future<Option<String>> futureResult = pgAsyncPool
+        CompletionStage<Option<String>> futureResult = pgAsyncPool
                 .queryOne(dsl -> dsl.select(name).from(table).where(name.eq("name-1")))
-                .map(mayBeResult -> mayBeResult.map(row -> row.get(name)));
+                .thenApply(mayBeResult -> mayBeResult.map(row -> row.get(name)));
         Option<String> res = futureResult
-                .get();
+                .toCompletableFuture().join();
         assertThat(res).isEqualTo(Some("name-1"));
     }
 
     @Test
     public void queryOneEmpty() {
-        Option<String> res = pgAsyncPool.queryOne(dsl -> dsl.select(name).from(table).where(name.eq("name-1"))).get().map(q -> q.get(name));
+        Option<String> res = pgAsyncPool.queryOne(dsl -> dsl.select(name).from(table).where(name.eq("name-1"))).toCompletableFuture().join().map(q -> q.get(name));
         assertThat(res).isEmpty();
     }
 
@@ -223,13 +231,13 @@ public abstract class AbstractPgAsyncPoolTest {
                         .set(name, "name-" + i)
                         .set(meta, jsonFromMap(HashMap.of("name", "A name " + i)))
                 )
-        ).get();
+        ).toCompletableFuture().join();
 
-        Future<Option<JsonNode>> futureResult = pgAsyncPool
+        CompletionStage<Option<JsonNode>> futureResult = pgAsyncPool
                 .queryOne(dsl -> dsl.select(meta).from(table).where(name.eq("name-1")))
-                .map(mayBeResult -> mayBeResult.map(row -> row.get(meta)));
+                .thenApply(mayBeResult -> mayBeResult.map(row -> row.get(meta)));
 
-        Option<JsonNode> res = futureResult.get();
+        Option<JsonNode> res = futureResult.toCompletableFuture().join();
         assertThat(res).isEqualTo(Some(jsonFromMap(HashMap.of("name", "A name 1"))));
     }
 
@@ -243,13 +251,13 @@ public abstract class AbstractPgAsyncPoolTest {
                         .set(meta, jsonFromMap(HashMap.of("name", "A name " + i)))
                         .set(created, Timestamp.valueOf(localDateTime))
                 )
-        ).get();
+        ).toCompletableFuture().join();
 
-        Future<Option<Timestamp>> futureResult = pgAsyncPool
+        CompletionStage<Option<Timestamp>> futureResult = pgAsyncPool
                 .queryOne(dsl -> dsl.select(created).from(table).where(name.eq("name-1")))
-                .map(mayBeResult -> mayBeResult.map(row -> row.get(created)));
+                .thenApply(mayBeResult -> mayBeResult.map(row -> row.get(created)));
 
-        Option<Timestamp> res = futureResult.get();
+        Option<Timestamp> res = futureResult.toCompletableFuture().join();
         assertThat(res.map(Timestamp::toLocalDateTime)).isEqualTo(Some(localDateTime));
     }
 
@@ -263,13 +271,13 @@ public abstract class AbstractPgAsyncPoolTest {
                         .set(name, "name-"+i)
                         .set(bigDecimal, bd)
                 )
-        ).get();
+        ).toCompletableFuture().join();
 
-        Future<Option<BigDecimal>> futureResult = pgAsyncPool
+        CompletionStage<Option<BigDecimal>> futureResult = pgAsyncPool
                 .queryOne(dsl -> dsl.select(bigDecimal).from(table).where(name.eq("name-1")))
-                .map(mayBeResult -> mayBeResult.map(row -> row.get(bigDecimal)));
+                .thenApply(mayBeResult -> mayBeResult.map(row -> row.get(bigDecimal)));
 
-        Option<BigDecimal> res = futureResult.get();
+        Option<BigDecimal> res = futureResult.toCompletableFuture().join();
         assertThat(res).isEqualTo(Some(bd));
     }
 
@@ -282,13 +290,13 @@ public abstract class AbstractPgAsyncPoolTest {
                         .set(name, "name-"+i)
                         .set(numberLong, 1L)
                 )
-        ).get();
+        ).toCompletableFuture().join();
 
-        Future<Option<Long>> futureResult = pgAsyncPool
+        CompletionStage<Option<Long>> futureResult = pgAsyncPool
                 .queryOne(dsl -> dsl.select().from(table).where(name.eq("name-1")))
-                .map(mayBeResult -> mayBeResult.map(row -> row.get(numberLong)));
+                .thenApply(mayBeResult -> mayBeResult.map(row -> row.get(numberLong)));
 
-        assertThat(futureResult.get()).isEqualTo(Some(1L));
+        assertThat(futureResult.toCompletableFuture().join()).isEqualTo(Some(1L));
     }
 
 
@@ -297,10 +305,9 @@ public abstract class AbstractPgAsyncPoolTest {
         List<String> names = List.range(0, 10000).map(i -> "name-" + i);
         pgAsyncPool.executeBatch(dsl ->
                 names.map(n -> dslContext.insertInto(table).set(name, n))
-        ).get();
+        ).toCompletableFuture().join();
 
-        Flux<String> stream = pgAsyncPool
-                .stream(10, dsl -> dsl.select(name).from(table))
+        Flux<String> stream = Flux.from(pgAsyncPool.stream(10, dsl -> dsl.select(name).from(table)))
                 .map(q -> q.get(name));
         List<String> res = stream
                 .collectList()
@@ -320,7 +327,7 @@ public abstract class AbstractPgAsyncPoolTest {
                 .execute();
 
         final PersonRecord result = pgAsyncPool.query(dsl -> dsl.selectFrom(Person.PERSON))
-                .get()
+                .toCompletableFuture().join()
                 .head()
                 .toRecord(Person.PERSON);
 
@@ -339,7 +346,7 @@ public abstract class AbstractPgAsyncPoolTest {
                 .execute();
 
         final PersonRecord result = pgAsyncPool.query(dsl -> dsl.selectFrom(Person.PERSON))
-                .get()
+                .toCompletableFuture().join()
                 .head()
                 .toRecord(new PersonRecord(Person.PERSON));
 

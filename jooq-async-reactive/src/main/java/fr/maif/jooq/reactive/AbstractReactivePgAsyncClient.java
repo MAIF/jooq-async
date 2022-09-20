@@ -32,6 +32,8 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -55,7 +57,7 @@ public abstract class AbstractReactivePgAsyncClient<Client extends SqlClient> im
         this.configuration = configuration;
     }
 
-    protected <R extends Record> Future<RowSet<Row>> rawPreparedQuery(Function<DSLContext, ? extends ResultQuery<R>> queryFunction) {
+    protected <R extends Record> CompletionStage<RowSet<Row>> rawPreparedQuery(Function<DSLContext, ? extends ResultQuery<R>> queryFunction) {
         Query query = createQuery(queryFunction);
         log(query);
         String preparedQuery = toPreparedQuery(query);
@@ -64,55 +66,56 @@ public abstract class AbstractReactivePgAsyncClient<Client extends SqlClient> im
     }
 
     @Override
-    public <R extends Record> Future<Option<QueryResult>> queryOne(Function<DSLContext, ? extends ResultQuery<R>> queryFunction) {
-        return rawPreparedQuery(queryFunction).flatMap(res -> {
+    public <R extends Record> CompletionStage<Option<QueryResult>> queryOne(Function<DSLContext, ? extends ResultQuery<R>> queryFunction) {
+        return rawPreparedQuery(queryFunction).thenCompose(res -> {
             switch (res.size()) {
                 case 0:
-                    return Future.successful(Option.none());
+                    return CompletableFuture.completedStage(Option.none());
                 case 1:
-                    return Future.successful(Option.of(new ReactiveRowQueryResult(res.iterator().next())));
+                    return CompletableFuture.completedStage(Option.of(new ReactiveRowQueryResult(res.iterator().next())));
                 default:
-                    return Future.failed(new TooManyRowsException(String.format("Found more than one row: %d", res.size())));
+                    return CompletableFuture.failedStage(new TooManyRowsException(String.format("Found more than one row: %d", res.size())));
             }
         });
     }
 
     @Override
-    public <R extends Record> Future<List<QueryResult>> query(Function<DSLContext, ? extends ResultQuery<R>> queryFunction) {
-        return rawPreparedQuery(queryFunction).map(AbstractReactivePgAsyncClient::asList);
+    public <R extends Record> CompletionStage<List<QueryResult>> query(Function<DSLContext, ? extends ResultQuery<R>> queryFunction) {
+        return rawPreparedQuery(queryFunction).thenApply(AbstractReactivePgAsyncClient::asList);
     }
 
     @Override
-    public Future<Integer> execute(Function<DSLContext, ? extends Query> queryFunction) {
+    public CompletionStage<Integer> execute(Function<DSLContext, ? extends Query> queryFunction) {
         Query query = createQuery(queryFunction);
         log(query);
         return fromVertx(client.preparedQuery(toPreparedQuery(query)).execute(getBindValues(query)))
-                .map(RowSet::rowCount);
+                .thenApply(RowSet::rowCount);
     }
 
     @Override
-    public Future<Long> executeBatch(Function<DSLContext, List<? extends Query>> queryFunction) {
+    public CompletionStage<Long> executeBatch(Function<DSLContext, List<? extends Query>> queryFunction) {
         List<? extends Query> queries = queryFunction.apply(DSL.using(configuration));
         if (queries.isEmpty()) {
-            return Future.successful(0L);
+            return CompletableFuture.completedStage(0L);
         }
-        return queries.foldLeft(Future.successful(0L), (acc, query) ->
-                acc.flatMap(count -> {
+        return queries.foldLeft(CompletableFuture.completedStage(0L), (acc, query) ->
+                acc.thenCompose(count -> {
                     log(query);
                     String preparedQuery = toPreparedQuery(query);
                     Tuple bindValues = getBindValues(query);
                     return fromVertx(client.preparedQuery(preparedQuery).execute(bindValues))
-                            .map(RowSet::rowCount).map(c -> count + c);
+                            .thenApply(RowSet::rowCount)
+                            .thenApply(c -> count + c);
                 })
         );
     }
 
     @Override
-    public Future<Long> executeBatch(Function<DSLContext, ? extends Query> queryFunction, List<List<Object>> values) {
+    public CompletionStage<Long> executeBatch(Function<DSLContext, ? extends Query> queryFunction, List<List<Object>> values) {
         if (values.isEmpty()) {
-            return Future.successful(0L);
+            return CompletableFuture.completedStage(0L);
         }
-        Promise<RowSet<Row>> rowFuture = Promise.make();
+        CompletableFuture<RowSet<Row>> rowFuture = new CompletableFuture<>();
         try {
             Query query = queryFunction.apply(DSL.using(configuration));
             log(query);
@@ -137,17 +140,20 @@ public abstract class AbstractReactivePgAsyncClient<Client extends SqlClient> im
                     });
             client.preparedQuery(preparedQuery).executeBatch(bindValues.toJavaList(), toCompletionHandler(rowFuture));
         } catch (Exception e) {
-            rowFuture.tryFailure(e);
+            rowFuture.completeExceptionally(e);
         }
-        return rowFuture.future().map(r -> Option(r).flatMap(c -> Option(c.rowCount())).map(Integer::longValue).getOrElse(0L));
+        return rowFuture.thenApply(r -> Option(r).flatMap(c -> Option(c.rowCount())).map(Integer::longValue).getOrElse(0L));
     }
 
-    protected static <U> Handler<AsyncResult<U>> toCompletionHandler(Promise<U> future) {
+    protected static <U> Handler<AsyncResult<U>> toCompletionHandler(CompletableFuture<U> future) {
         return h -> {
             if (h.succeeded()) {
-                future.tryComplete(Try.of(h::result));
+                Try.of(h::result).fold(
+                        future::completeExceptionally,
+                        future::complete
+                );
             } else {
-                future.tryFailure(h.cause());
+                future.completeExceptionally(h.cause());
             }
         };
     }
