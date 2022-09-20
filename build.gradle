@@ -44,7 +44,7 @@ subprojects {
         toolchain {
             languageVersion = JavaLanguageVersion.of(17)
         }
-        withSourcesJar()
+//        withSourcesJar()
     }
     ext {
         jacksonVersion = "2.10.5"
