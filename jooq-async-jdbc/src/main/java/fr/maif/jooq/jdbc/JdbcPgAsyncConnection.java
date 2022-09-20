@@ -11,10 +11,14 @@ import org.jooq.Record;
 import org.jooq.ResultQuery;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
+import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 
@@ -28,23 +32,30 @@ public class JdbcPgAsyncConnection extends AbstractJdbcPgAsyncClient implements 
     }
 
     @Override
-    public Future<Tuple0> close() {
-        return Future.of(executor, () -> {
-            connection.close();
-            return Tuple.empty();
-        });
+    public CompletionStage<Void> close() {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        }, executor);
     }
 
     @Override
-    public Future<PgAsyncTransaction> begin() {
-        return Future.of(executor, () -> {
-            connection.setAutoCommit(false);
+    public CompletionStage<PgAsyncTransaction> begin() {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                connection.setAutoCommit(false);
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
             return new JdbcPgAsyncTransaction(dialect, connection, executor);
-        });
+        }, executor);
     }
 
     @Override
-    public <Q extends Record> Flux<QueryResult> stream(Integer fetchSize, Function<DSLContext, ? extends ResultQuery<Q>> queryFunction) {
+    public <Q extends Record> Publisher<QueryResult> stream(Integer fetchSize, Function<DSLContext, ? extends ResultQuery<Q>> queryFunction) {
         return Mono.fromCompletionStage(begin().toCompletableFuture())
                 .flux()
                 .concatMap(pgAsyncTransaction ->

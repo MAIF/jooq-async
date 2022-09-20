@@ -16,7 +16,7 @@ dependencies {
     implementation("com.typesafe.akka:akka-stream_$scalaVersion:$akkaVersion")
     implementation("com.ongres.scram:client:2.1")
     implementation("org.slf4j:slf4j-api:1.7.26")
-    implementation("io.vertx:vertx-pg-client:4.2.5")
+    implementation("io.vertx:vertx-pg-client:4.3.3")
 
     testImplementation project(':jooq-async-api-tck')
     testImplementation("com.novocode:junit-interface:0.11")

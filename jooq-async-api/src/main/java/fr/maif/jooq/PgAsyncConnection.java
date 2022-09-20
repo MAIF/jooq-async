@@ -3,8 +3,10 @@ package fr.maif.jooq;
 import io.vavr.Tuple0;
 import io.vavr.concurrent.Future;
 
+import java.util.concurrent.CompletionStage;
+
 public interface PgAsyncConnection extends PgAsyncClient {
 
-    Future<Tuple0> close();
-    Future<PgAsyncTransaction> begin();
+    CompletionStage<Void> close();
+    CompletionStage<PgAsyncTransaction> begin();
 }

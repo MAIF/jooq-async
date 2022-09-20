@@ -16,6 +16,7 @@ import org.jooq.ResultQuery;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 import static fr.maif.jooq.reactive.FutureConversions.fromVertx;
@@ -27,14 +28,14 @@ public class ReactivePgAsyncConnection extends AbstractReactivePgAsyncClient<Sql
     }
 
     @Override
-    public Future<Tuple0> close() {
-        return fromVertx(client.close()).map(__ -> Tuple.empty());
+    public CompletionStage<Void> close() {
+        return fromVertx(client.close()).thenRun(() -> {});
     }
 
     @Override
-    public Future<PgAsyncTransaction> begin() {
+    public CompletionStage<PgAsyncTransaction> begin() {
         return fromVertx(client.begin())
-                .map(tx -> new ReactivePgAsyncTransaction(client, tx, configuration));
+                .thenApply(tx -> new ReactivePgAsyncTransaction(client, tx, configuration));
     }
 
     @Override

@@ -12,6 +12,7 @@ dependencies {
     implementation("io.vavr:vavr:$vavrVersion")
     implementation("org.jooq:jooq:$_jooqVersion")
     implementation("io.projectreactor:reactor-core:3.4.23")
+    implementation("org.slf4j:slf4j-api:1.7.26")
 
     testImplementation project(':jooq-async-api-tck')
     testImplementation("com.novocode:junit-interface:0.11")
