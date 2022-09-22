@@ -34,4 +34,6 @@ public interface PgAsyncPool extends PgAsyncClient {
         );
     }
 
+    fr.maif.jooq.PgAsyncPool toPgAsyncPool();
+
 }

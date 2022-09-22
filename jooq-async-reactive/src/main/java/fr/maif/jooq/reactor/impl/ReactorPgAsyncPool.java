@@ -1,6 +1,5 @@
 package fr.maif.jooq.reactor.impl;
 
-import fr.maif.jooq.PgAsyncClient;
 import fr.maif.jooq.PgAsyncPool;
 import fr.maif.jooq.reactor.PgAsyncConnection;
 import fr.maif.jooq.reactor.PgAsyncTransaction;
@@ -25,5 +24,10 @@ public class ReactorPgAsyncPool extends ReactorPgAsyncClient implements fr.maif.
     public Mono<PgAsyncTransaction> begin() {
         return Mono.fromCompletionStage(this.underlying::begin)
                 .map(t -> new ReactorPgAsyncTransaction(super.underlying, t));
+    }
+
+    @Override
+    public PgAsyncPool toPgAsyncPool() {
+        return underlying;
     }
 }

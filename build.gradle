@@ -46,6 +46,7 @@ subprojects {
         vavrVersion = "0.10.0"
         _jooqVersion = "3.17.4"
         scalaVersion = "2.13"
+        reactorVersion = "3.4.23"
     }
     test {
         testLogging {
