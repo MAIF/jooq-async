@@ -1,5 +1,6 @@
 package fr.maif.jooq.reactor;
 
+import fr.maif.jooq.PgAsyncPoolGetter;
 import fr.maif.jooq.reactive.ReactivePgAsyncPool;
 import fr.maif.jooq.reactor.impl.ReactorPgAsyncClient;
 import fr.maif.jooq.reactor.impl.ReactorPgAsyncPool;
@@ -9,11 +10,11 @@ import reactor.core.publisher.Mono;
 
 import java.util.function.Function;
 
-public interface PgAsyncPool extends PgAsyncClient {
+public interface PgAsyncPool extends PgAsyncClient, fr.maif.jooq.PgAsyncClient, PgAsyncPoolGetter {
 
-    Mono<PgAsyncConnection> connection();
+    Mono<PgAsyncConnection> connectionMono();
 
-    Mono<PgAsyncTransaction> begin();
+    Mono<PgAsyncTransaction> beginMono();
 
     static PgAsyncPool create(PgPool client, Configuration configuration) {
         ReactivePgAsyncPool pool = new ReactivePgAsyncPool(client, configuration);
@@ -24,8 +25,8 @@ public interface PgAsyncPool extends PgAsyncClient {
         return new ReactorPgAsyncPool(pgAsyncPool);
     }
 
-    default <T> Mono<T> inTransaction(Function<PgAsyncTransaction, Mono<T>> action) {
-        return begin().flatMap(t ->
+    default <T> Mono<T> inTransactionMono(Function<PgAsyncTransaction, Mono<T>> action) {
+        return beginMono().flatMap(t ->
                 action.apply(t)
                         .flatMap(r -> t.commit().map(__ -> r))
                         .onErrorResume(e ->
@@ -34,6 +35,9 @@ public interface PgAsyncPool extends PgAsyncClient {
         );
     }
 
-    fr.maif.jooq.PgAsyncPool toPgAsyncPool();
+    fr.maif.jooq.PgAsyncPool pgAsyncPool();
+
+
+
 
 }

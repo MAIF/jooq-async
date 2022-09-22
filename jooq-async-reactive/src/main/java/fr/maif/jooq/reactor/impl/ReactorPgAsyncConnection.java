@@ -1,26 +1,37 @@
 package fr.maif.jooq.reactor.impl;
 
-import fr.maif.jooq.PgAsyncConnection;
 import fr.maif.jooq.PgAsyncClient;
 import fr.maif.jooq.reactor.PgAsyncTransaction;
 import reactor.core.publisher.Mono;
 
-public class ReactorPgAsyncConnection extends ReactorPgAsyncClient implements fr.maif.jooq.reactor.PgAsyncConnection {
+import java.util.concurrent.CompletionStage;
 
-    private final PgAsyncConnection underlying;
+public class ReactorPgAsyncConnection extends ReactorPgAsyncClient implements fr.maif.jooq.reactor.PgAsyncConnection, fr.maif.jooq.PgAsyncConnection {
 
-    public ReactorPgAsyncConnection(PgAsyncConnection underlying, PgAsyncClient pgAsyncClient) {
+    private final fr.maif.jooq.PgAsyncConnection underlying;
+
+    public ReactorPgAsyncConnection(fr.maif.jooq.PgAsyncConnection underlying, PgAsyncClient pgAsyncClient) {
         super(pgAsyncClient);
         this.underlying = underlying;
     }
 
     @Override
-    public Mono<Void> close() {
+    public Mono<Void> closeMono() {
         return Mono.fromCompletionStage(this.underlying::close);
     }
 
     @Override
-    public Mono<PgAsyncTransaction> begin() {
+    public Mono<PgAsyncTransaction> beginMono() {
         return Mono.fromCompletionStage(this.underlying::begin).map(t -> new ReactorPgAsyncTransaction(this.underlying, t));
+    }
+
+    @Override
+    public CompletionStage<Void> close() {
+        return underlying.close();
+    }
+
+    @Override
+    public CompletionStage<fr.maif.jooq.PgAsyncTransaction> begin() {
+        return underlying.begin();
     }
 }

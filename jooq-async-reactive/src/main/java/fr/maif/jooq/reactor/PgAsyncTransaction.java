@@ -3,9 +3,9 @@ package fr.maif.jooq.reactor;
 import reactor.core.publisher.Mono;
 
 
-public interface PgAsyncTransaction extends PgAsyncClient {
+public interface PgAsyncTransaction extends PgAsyncClient, fr.maif.jooq.PgAsyncTransaction {
 
-    Mono<Void> commit();
-    Mono<Void> rollback();
+    Mono<Void> commitMono();
+    Mono<Void> rollbackMono();
 
 }
