@@ -28,9 +28,9 @@ public interface PgAsyncPool extends PgAsyncClient, fr.maif.jooq.PgAsyncClient, 
     default <T> Mono<T> inTransactionMono(Function<PgAsyncTransaction, Mono<T>> action) {
         return beginMono().flatMap(t ->
                 action.apply(t)
-                        .flatMap(r -> t.commit().map(__ -> r))
+                        .flatMap(r -> t.commitMono().map(__ -> r))
                         .onErrorResume(e ->
-                                t.rollback().flatMap(__ -> Mono.error(e))
+                                t.rollbackMono().flatMap(__ -> Mono.error(e))
                         )
         );
     }
