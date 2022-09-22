@@ -15,12 +15,10 @@ jobs:
           echo "${{secrets.PGP_SECRET}}" > ~/.gradle/secring.key
           gpg --batch --pinentry-mode=loopback --yes --passphrase ${{ secrets.PGP_PASSPHRASE }} --import ~/.gradle/secring.key
           gpg --batch --pinentry-mode=loopback --yes --passphrase ${{ secrets.PGP_PASSPHRASE }} --export-secret-key D546AEC36F94B3078E33900CE856678CF07E3809 > ~/.gradle/secring.gpg
-#          echo "${{secrets.PGP_SECRET}}" > ~/.gradle/secring.gpg.b64
-#          base64 -d ~/.gradle/secring.gpg.b64 > ~/.gradle/secring.gpg
       - name: Publish
         run: |
           ./gradlew publish -PmavenCentralUsername=${{ secrets.SONATYPE_USERNAME }} -PmavenCentralPassword=${{ secrets.SONATYPE_PASSWORD }} -Psigning.keyId=F07E3809 -Psigning.password=${{secrets.PGP_PASSPHRASE}} -Psigning.secretKeyRingFile=$(echo ~/.gradle/secring.gpg) --warn --stacktrace
-          ./gradlew closeAndReleaseRepository
+          ./closeRelease.sh
         env:
           PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
           PGP_SECRET: ${{ secrets.PGP_SECRET }}
