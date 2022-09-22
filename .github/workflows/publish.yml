@@ -18,7 +18,7 @@ jobs:
       - name: Publish
         run: |
           ./gradlew publish -PmavenCentralUsername=${{ secrets.SONATYPE_USERNAME }} -PmavenCentralPassword=${{ secrets.SONATYPE_PASSWORD }} -Psigning.keyId=F07E3809 -Psigning.password=${{secrets.PGP_PASSPHRASE}} -Psigning.secretKeyRingFile=$(echo ~/.gradle/secring.gpg) --warn --stacktrace
-          ./closeRelease.sh
+          ./closeRelease.sh ${{ github.event.head_commit.message }}
         env:
           PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
           PGP_SECRET: ${{ secrets.PGP_SECRET }}
