@@ -28,6 +28,7 @@ subprojects {
     }
 
     artifacts {
+        archives jar
         archives sourcesJar
     }
 
@@ -103,7 +104,7 @@ subprojects {
 //                def releaseRepo = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
 //                def snaphostRepo = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
 //                name = "OSSRH"
-//                url = isReleaseVersion ? releaseRepo : snaphostRepo //"https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
+//                url = isReleaseVersion ? releaseRepo : snaphostRepo
 //                credentials {
 //                    username = System.env.SONATYPE_USERNAME
 //                    password = System.env.SONATYPE_PASSWORD
