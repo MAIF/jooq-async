@@ -1,12 +1,3 @@
-buildscript {
-    repositories {
-        mavenCentral()
-    }
-    dependencies {
-        classpath 'com.vanniktech:gradle-maven-publish-plugin:0.22.0'
-    }
-}
-
 plugins {
     id 'net.researchgate.release' version '3.0.0'
     id 'java'
@@ -15,28 +6,21 @@ plugins {
     id("io.github.gradle-nexus.publish-plugin") version "1.1.0"
 }
 
+group = 'fr.maif'
+
 subprojects {
     apply plugin: 'java'
     apply plugin: 'maven-publish'
     apply plugin: 'signing'
-    apply plugin: "com.vanniktech.maven.publish"
     group = 'fr.maif'
-
-    task sourcesJar(type: Jar) {
-        classifier = 'sources'
-        from sourceSets.main.allSource
-    }
-
-    artifacts {
-        archives jar
-        archives sourcesJar
-    }
 
     repositories {
         mavenCentral()
     }
 
     java {
+        withSourcesJar()
+        withJavadocJar()
         toolchain {
             languageVersion = JavaLanguageVersion.of(17)
         }
@@ -59,58 +43,58 @@ subprojects {
         useJUnitPlatform()
     }
 
-
     publishing {
         publications {
             mavenJava(MavenPublication) {
                 from(components.java)
-                artifact sourcesJar
                 pom {
-                    groupId = 'fr.maif'
-                    name = 'jooq-async'
-                    description = ''
-                    url = 'https://github.com/maif/jooq-async'
-                    inceptionYear = '2020'
-
+                    name = "Jooq Async"
+                    description = "Reactive vertx integration with jooq"
+                    inceptionYear = "2020"
+                    url = "https://github.com/maif/jooq-async"
                     licenses {
                         license {
-                            name = 'Apache-2.0'
-                            url = 'http://www.apache.org/licenses/LICENSE-2.0'
+                            name = "The Apache License, Version 2.0"
+                            url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+                            distribution = "http://www.apache.org/licenses/LICENSE-2.0.txt"
                         }
                     }
                     developers {
                         developer {
-                            id = 'alexandre.delegue'
-                            name = 'Alexandre Delègue'
-                            url = 'https://github.com/larousso'
-                        }
-                        developer {
-                            id = 'benjamin.cavy'
-                            name = 'Benjamin Cavy'
-                            url = 'https://github.com/ptitFicus'
-                        }
+                                id = 'alexandre.delegue'
+                                name = 'Alexandre Delègue'
+                                url = 'https://github.com/larousso'
+                            }
+                            developer {
+                                id = 'benjamin.cavy'
+                                name = 'Benjamin Cavy'
+                                url = 'https://github.com/ptitFicus'
+                            }
                     }
                     scm {
-                        connection = 'scm:git:git://github.com/maif/jooq-async.git'
-                        developerConnection = 'scm:git:ssh://github.com/maif/jooq-async.git'
-                        url = 'https://github.com/maif/jooq-async'
+                        url = "https://github.com/maif/jooq-async"
+                        connection = "scm:git:git://github.com/maif/jooq-async.git"
+                        developerConnection = "scm:git:ssh://github.com/maif/jooq-async.git"
                     }
                 }
             }
         }
-//        repositories {
-//            maven {
-//                def isReleaseVersion = !version.endsWith("-SNAPSHOT")
-//                def releaseRepo = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
-//                def snaphostRepo = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
-//                name = "OSSRH"
-//                url = isReleaseVersion ? releaseRepo : snaphostRepo
-//                credentials {
-//                    username = System.env.SONATYPE_USERNAME
-//                    password = System.env.SONATYPE_PASSWORD
-//                }
-//            }
-//        }
+    }
+
+    signing {
+        sign publishing.publications.mavenJava
+    }
+}
+
+
+nexusPublishing {
+    repositories {
+        sonatype {
+            nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
+            snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
+            username = System.env.SONATYPE_USERNAME
+            password = System.env.SONATYPE_PASSWORD
+        }
     }
 }
 
