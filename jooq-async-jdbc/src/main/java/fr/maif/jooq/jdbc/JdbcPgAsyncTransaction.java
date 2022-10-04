@@ -31,8 +31,8 @@ public class JdbcPgAsyncTransaction extends AbstractJdbcPgAsyncClient implements
     }
 
     @Override
-    public CompletionStage<Void> commit() {
-        return CompletableFuture.runAsync(() -> {
+    public CompletionStage<Tuple0> commit() {
+        return CompletableFuture.supplyAsync(() -> {
             try {
                 connection.commit();
             } catch (Exception e) {
@@ -44,12 +44,13 @@ public class JdbcPgAsyncTransaction extends AbstractJdbcPgAsyncClient implements
                     throw new RuntimeException(e);
                 }
             }
+            return Tuple.empty();
         }, executor);
     }
 
     @Override
-    public CompletionStage<Void> rollback() {
-        return CompletableFuture.runAsync(() -> {
+    public CompletionStage<Tuple0> rollback() {
+        return CompletableFuture.supplyAsync(() -> {
             try {
                 connection.rollback();
             } catch (Exception e) {
@@ -61,6 +62,7 @@ public class JdbcPgAsyncTransaction extends AbstractJdbcPgAsyncClient implements
                     throw new RuntimeException(e);
                 }
             }
+            return Tuple.empty();
         }, executor);
     }
 

@@ -28,8 +28,8 @@ public class ReactivePgAsyncConnection extends AbstractReactivePgAsyncClient<Sql
     }
 
     @Override
-    public CompletionStage<Void> close() {
-        return fromVertx(client.close()).thenRun(() -> {});
+    public CompletionStage<Tuple0> close() {
+        return fromVertx(client.close()).thenApply(__ -> Tuple.empty());
     }
 
     @Override

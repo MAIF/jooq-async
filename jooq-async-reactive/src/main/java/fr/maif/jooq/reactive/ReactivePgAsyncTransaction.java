@@ -37,13 +37,13 @@ public class ReactivePgAsyncTransaction extends AbstractReactivePgAsyncClient<Sq
     }
 
     @Override
-    public CompletionStage<Void> commit() {
-        return fromVertx(transaction.commit().flatMap(__ -> client.close())).thenRun(() -> {});
+    public CompletionStage<Tuple0> commit() {
+        return fromVertx(transaction.commit().flatMap(__ -> client.close())).thenApply(__ -> Tuple.empty());
     }
 
     @Override
-    public CompletionStage<Void> rollback() {
-        return fromVertx(transaction.rollback().flatMap(__ -> client.close())).thenRun(() -> {});
+    public CompletionStage<Tuple0> rollback() {
+        return fromVertx(transaction.rollback().flatMap(__ -> client.close())).thenApply(__ -> Tuple.empty());
     }
 
     @Override

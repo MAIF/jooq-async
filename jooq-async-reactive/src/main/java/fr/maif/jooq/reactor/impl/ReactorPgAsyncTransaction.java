@@ -2,6 +2,7 @@ package fr.maif.jooq.reactor.impl;
 
 import fr.maif.jooq.PgAsyncClient;
 import fr.maif.jooq.PgAsyncTransaction;
+import io.vavr.Tuple0;
 import reactor.core.publisher.Mono;
 
 import java.util.concurrent.CompletionStage;
@@ -16,22 +17,22 @@ public class ReactorPgAsyncTransaction extends ReactorPgAsyncClient implements f
     }
 
     @Override
-    public Mono<Void> commitMono() {
+    public Mono<Tuple0> commitMono() {
         return Mono.fromCompletionStage(this.underlying::commit);
     }
 
     @Override
-    public Mono<Void> rollbackMono() {
+    public Mono<Tuple0> rollbackMono() {
         return Mono.fromCompletionStage(this.underlying::rollback);
     }
 
     @Override
-    public CompletionStage<Void> commit() {
+    public CompletionStage<Tuple0> commit() {
         return underlying.commit();
     }
 
     @Override
-    public CompletionStage<Void> rollback() {
+    public CompletionStage<Tuple0> rollback() {
         return underlying.rollback();
     }
 }

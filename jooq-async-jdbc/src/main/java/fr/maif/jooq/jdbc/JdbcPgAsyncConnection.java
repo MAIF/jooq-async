@@ -32,13 +32,14 @@ public class JdbcPgAsyncConnection extends AbstractJdbcPgAsyncClient implements 
     }
 
     @Override
-    public CompletionStage<Void> close() {
-        return CompletableFuture.runAsync(() -> {
+    public CompletionStage<Tuple0> close() {
+        return CompletableFuture.supplyAsync(() -> {
             try {
                 connection.close();
             } catch (SQLException e) {
                 throw new RuntimeException(e);
             }
+            return Tuple.empty();
         }, executor);
     }
 
