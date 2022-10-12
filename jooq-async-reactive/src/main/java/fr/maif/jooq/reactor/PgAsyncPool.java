@@ -10,7 +10,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.function.Function;
 
-public interface PgAsyncPool extends PgAsyncClient, fr.maif.jooq.PgAsyncClient, PgAsyncPoolGetter {
+public interface PgAsyncPool extends PgAsyncClient, fr.maif.jooq.PgAsyncPool, PgAsyncPoolGetter {
 
     Mono<PgAsyncConnection> connectionMono();
 
@@ -25,15 +25,7 @@ public interface PgAsyncPool extends PgAsyncClient, fr.maif.jooq.PgAsyncClient, 
         return new ReactorPgAsyncPool(pgAsyncPool);
     }
 
-    default <T> Mono<T> inTransactionMono(Function<PgAsyncTransaction, Mono<T>> action) {
-        return beginMono().flatMap(t ->
-                action.apply(t)
-                        .flatMap(r -> t.commitMono().map(__ -> r))
-                        .onErrorResume(e ->
-                                t.rollbackMono().flatMap(__ -> Mono.error(e))
-                        )
-        );
-    }
+    <T> Mono<T> inTransactionMono(Function<PgAsyncTransaction, Mono<T>> action);
 
     fr.maif.jooq.PgAsyncPool pgAsyncPool();
 

@@ -50,6 +50,8 @@ public class ReactivePgAsyncPool extends AbstractReactivePgAsyncClient<PgPool> i
         );
     }
 
+
+
     @Override
     public CompletionStage<PgAsyncConnection> connection() {
         return fromVertx(client.getConnection()).thenApply(c -> new ReactivePgAsyncConnection(c, configuration));
@@ -81,4 +83,6 @@ public class ReactivePgAsyncPool extends AbstractReactivePgAsyncClient<PgPool> i
                         )
                 );
     }
+
+
 }

@@ -15,7 +15,8 @@ import reactor.core.publisher.Mono;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
-public class ReactorPgAsyncClient implements fr.maif.jooq.reactor.PgAsyncClient, fr.maif.jooq.PgAsyncClient {
+public abstract class ReactorPgAsyncClient implements fr.maif.jooq.reactor.PgAsyncClient, fr.maif.jooq.PgAsyncClient {
+
     protected final PgAsyncClient underlying;
 
     public ReactorPgAsyncClient(PgAsyncClient underlying) {

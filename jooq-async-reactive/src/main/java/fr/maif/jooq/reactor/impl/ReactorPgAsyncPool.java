@@ -17,15 +17,22 @@ public class ReactorPgAsyncPool extends ReactorPgAsyncClient implements fr.maif.
     }
 
     @Override
+    public <T> Mono<T> inTransactionMono(Function<PgAsyncTransaction, Mono<T>> action) {
+        return Mono.fromCompletionStage(() -> underlying.inTransaction(tx ->
+                action.apply(new ReactorPgAsyncTransaction(tx)).toFuture()
+        ));
+    }
+
+    @Override
     public Mono<PgAsyncConnection> connectionMono() {
         return Mono.fromCompletionStage(this.underlying::connection)
-                .map(c -> new ReactorPgAsyncConnection(c, super.underlying));
+                .map(ReactorPgAsyncConnection::new);
     }
 
     @Override
     public Mono<PgAsyncTransaction> beginMono() {
         return Mono.fromCompletionStage(this.underlying::begin)
-                .map(t -> new ReactorPgAsyncTransaction(super.underlying, t));
+                .map(ReactorPgAsyncTransaction::new);
     }
 
     @Override

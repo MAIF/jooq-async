@@ -11,8 +11,8 @@ public class ReactorPgAsyncTransaction extends ReactorPgAsyncClient implements f
 
     private final PgAsyncTransaction underlying;
 
-    public ReactorPgAsyncTransaction(PgAsyncClient pgAsyncClient, PgAsyncTransaction pgAsyncTransaction) {
-        super(pgAsyncClient);
+    public ReactorPgAsyncTransaction(PgAsyncTransaction pgAsyncTransaction) {
+        super(pgAsyncTransaction);
         this.underlying = pgAsyncTransaction;
     }
 

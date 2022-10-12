@@ -46,6 +46,8 @@ public class ReactivePgAsyncTransaction extends AbstractReactivePgAsyncClient<Sq
         return fromVertx(transaction.rollback().flatMap(__ -> client.close())).thenApply(__ -> Tuple.empty());
     }
 
+
+
     @Override
     public <Q extends Record> Flux<QueryResult> stream(Integer fetchSize, Function<DSLContext, ? extends ResultQuery<Q>> queryFunction) {
         Query query = createQuery(queryFunction);

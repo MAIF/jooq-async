@@ -11,8 +11,8 @@ public class ReactorPgAsyncConnection extends ReactorPgAsyncClient implements fr
 
     private final fr.maif.jooq.PgAsyncConnection underlying;
 
-    public ReactorPgAsyncConnection(fr.maif.jooq.PgAsyncConnection underlying, PgAsyncClient pgAsyncClient) {
-        super(pgAsyncClient);
+    public ReactorPgAsyncConnection(fr.maif.jooq.PgAsyncConnection underlying) {
+        super(underlying);
         this.underlying = underlying;
     }
 
@@ -23,7 +23,7 @@ public class ReactorPgAsyncConnection extends ReactorPgAsyncClient implements fr
 
     @Override
     public Mono<PgAsyncTransaction> beginMono() {
-        return Mono.fromCompletionStage(this.underlying::begin).map(t -> new ReactorPgAsyncTransaction(this.underlying, t));
+        return Mono.fromCompletionStage(this.underlying::begin).map(ReactorPgAsyncTransaction::new);
     }
 
     @Override

@@ -1,13 +1,10 @@
 package fr.maif.jooq.reactive;
 
-import akka.NotUsed;
-import akka.stream.javadsl.Source;
-import io.vavr.Tuple;
-import io.vavr.Tuple0;
 import fr.maif.jooq.PgAsyncConnection;
 import fr.maif.jooq.PgAsyncTransaction;
 import fr.maif.jooq.QueryResult;
-import io.vavr.concurrent.Future;
+import io.vavr.Tuple;
+import io.vavr.Tuple0;
 import io.vertx.sqlclient.SqlConnection;
 import org.jooq.Configuration;
 import org.jooq.DSLContext;
