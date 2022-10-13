@@ -4,8 +4,8 @@
 
 [ga]:               https://github.com/MAIF/jooq-async/actions?query=workflow%3ABuild
 [ga-badge]:         https://github.com/MAIF/jooq-async/workflows/Build/badge.svg
-[jar]:              https://maven-badges.herokuapp.com/maven-central/fr.maif/jooq-async-api_2.13
-[jar-badge]:        https://maven-badges.herokuapp.com/maven-central/fr.maif/jooq-async-api_2.13/badge.svg
+[jar]:              https://maven-badges.herokuapp.com/maven-central/fr.maif/jooq-async-api
+[jar-badge]:        https://maven-badges.herokuapp.com/maven-central/fr.maif/jooq-async-api/badge.svg
 
 This API is a solution to use jooq with reactive clients for RDBMS.  
 
@@ -24,7 +24,7 @@ Jcenter hosts this library.
 ```xml
 <dependency>
   <groupId>fr.maif</groupId>
-  <artifactId>jooq-async-jdbc_2.13</artifactId>
+  <artifactId>jooq-async-jdbc</artifactId>
     <version>${version}</version>
 </dependency>
 ```
@@ -34,7 +34,7 @@ OR
 ```xml
 <dependency>
   <groupId>fr.maif</groupId>
-  <artifactId>jooq-async-reactive_2.13</artifactId>
+  <artifactId>jooq-async-reactive</artifactId>
   <version>${version}</version>
 </dependency>
 ``` 
@@ -42,13 +42,13 @@ OR
 ### Gradle
 
 ```gradle
-implementation "fr.maif:jooq-async-api_2.13:${version}"
+implementation "fr.maif:jooq-async-api:${version}"
 ```
 
 OR
 
 ```gradle
-implementation "fr.maif:jooq-async-reactive_2.13:${version}"
+implementation "fr.maif:jooq-async-reactive:${version}"
 ```
 
 ## The API 
@@ -90,7 +90,7 @@ The idea is to use the jooq DSL as a builder to write the query. The query is th
 #### Query one : 
 
 ```java
-Future<Option<String>> futureResult = reactivePgAsyncPool
+CompletionStage<Option<String>> futureResult = reactivePgAsyncPool
         .queryOne(dsl -> dsl.select(name).from(table).where(name.eq("Ragnar")))
         .map(mayBeResult -> mayBeResult.map(row -> row.get(name)));
 ```
@@ -98,7 +98,7 @@ Future<Option<String>> futureResult = reactivePgAsyncPool
 #### Query many : 
 
 ```java
-Future<List<String>> futureResult = reactivePgAsyncPool
+CompletionStage<List<String>> futureResult = reactivePgAsyncPool
         .query(dsl -> dsl.select(name).from(table)))
         .map(results -> results.map(row -> row.get(name)));
 ```
@@ -106,15 +106,17 @@ Future<List<String>> futureResult = reactivePgAsyncPool
 #### Stream data 
 
 ```java
-Source<String, NotUsed> stream = reactivePgAsyncPool
+Publisher<String, NotUsed> stream = reactivePgAsyncPool
                 .stream(500 /*fetch size*/, dsl -> dsl.select(name).from(table))
                 .map(q -> q.get(name));
 ```
 
+The publisher comes from the reactive streams API. 
+
 #### Execute statement
 
 ```java 
-Future<Integer> insertResult = reactivePgAsyncPool.inTransaction(t ->
+CompletionStage<Integer> insertResult = reactivePgAsyncPool.inTransaction(t ->
         t.execute(dsl -> dsl.insertInto(table).set(name, "test"))
 );
 ``` 
@@ -126,7 +128,7 @@ This version is the most performant if you have one statement with multiple valu
 
 ```java
 List<String> names = List.range(0, 10).map(i -> "name-" + i);
-Future<Long> batchResult = reactivePgAsyncPool.executeBatch(
+CompletionStage<Long> batchResult = reactivePgAsyncPool.executeBatch(
         dsl -> dslContext.insertInto(table).columns(name).values((String) null),
         names.map(List::of)
 );
@@ -136,7 +138,22 @@ With this version, you can batch a set of statements. You should use this versio
 
 ```java
 List<String> names = List.range(0, 10).map(i -> "name-" + i);
-Future<Long> batchResult = reactivePgAsyncPool.executeBatch(dsl ->
+CompletionStage<Long> batchResult = reactivePgAsyncPool.executeBatch(dsl ->
         names.map(n -> dslContext.insertInto(table).set(name, n))
 );
+```
+
+## Spring reactor :
+
+The `jooq-async-reactive` module expose operations with the `Mono` / `Flux` API. 
+
+```java
+PgAsyncPool pgAsyncPool = PgAsyncPool.create(client, jooqConfig);
+
+Mono<Option<String>> result =  pgAsyncPool.queryOneOne(dsl -> dsl
+            .select(name)
+            .from(table)
+            .where(name.eq("Ragnar"))
+        )
+        .map(mayBeResult -> mayBeResult.map(row -> row.get(name)));
 ```
