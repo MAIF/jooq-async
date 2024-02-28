@@ -5,6 +5,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.pgclient.data.*;
+import io.vertx.pgclient.data.Path;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.data.Numeric;
 import org.jooq.Record;
