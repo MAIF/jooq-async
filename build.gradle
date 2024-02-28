@@ -29,7 +29,7 @@ subprojects {
         jacksonVersion = "2.10.5"
         akkaVersion = "2.6.6"
         vavrVersion = "0.10.0"
-        _jooqVersion = "3.18.6"
+        _jooqVersion = "3.19.5"
         scalaVersion = "2.13"
         reactorVersion = "3.6.3"
     }
