@@ -20,7 +20,11 @@ public interface PgAsyncPool extends PgAsyncClient {
                 action.apply(t)
                         .thenCompose(r -> t.commit().thenApply(__ -> r))
                         .exceptionallyCompose(e ->
-                                t.rollback().thenCompose(__ -> CompletableFuture.failedStage(e))
+                                t.rollback().thenCompose(__ -> {
+                                    CompletableFuture<T> cf = new CompletableFuture<>();
+                                    cf.completeExceptionally(e);
+                                    return cf;
+                                })
                         )
         );
     }

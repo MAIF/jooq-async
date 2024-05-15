@@ -70,11 +70,11 @@ public abstract class AbstractReactivePgAsyncClient<Client extends SqlClient> im
         return rawPreparedQuery(queryFunction).thenCompose(res -> {
             switch (res.size()) {
                 case 0:
-                    return CompletableFuture.completedStage(Option.none());
+                    return completedStage(Option.none());
                 case 1:
-                    return CompletableFuture.completedStage(Option.of(new ReactiveRowQueryResult(res.iterator().next())));
+                    return completedStage(Option.of(new ReactiveRowQueryResult(res.iterator().next())));
                 default:
-                    return CompletableFuture.failedStage(new TooManyRowsException(String.format("Found more than one row: %d", res.size())));
+                    return failedStage(new TooManyRowsException(String.format("Found more than one row: %d", res.size())));
             }
         });
     }
@@ -96,9 +96,9 @@ public abstract class AbstractReactivePgAsyncClient<Client extends SqlClient> im
     public CompletionStage<Long> executeBatch(Function<DSLContext, List<? extends Query>> queryFunction) {
         List<? extends Query> queries = queryFunction.apply(DSL.using(configuration));
         if (queries.isEmpty()) {
-            return CompletableFuture.completedStage(0L);
+            return completedStage(0L);
         }
-        return queries.foldLeft(CompletableFuture.completedStage(0L), (acc, query) ->
+        return queries.foldLeft(completedStage(0L), (acc, query) ->
                 acc.thenCompose(count -> {
                     log(query);
                     String preparedQuery = toPreparedQuery(query);
@@ -113,7 +113,7 @@ public abstract class AbstractReactivePgAsyncClient<Client extends SqlClient> im
     @Override
     public CompletionStage<Long> executeBatch(Function<DSLContext, ? extends Query> queryFunction, List<List<Object>> values) {
         if (values.isEmpty()) {
-            return CompletableFuture.completedStage(0L);
+            return completedStage(0L);
         }
         CompletableFuture<RowSet<Row>> rowFuture = new CompletableFuture<>();
         try {
@@ -273,5 +273,17 @@ public abstract class AbstractReactivePgAsyncClient<Client extends SqlClient> im
         } catch (IOException e) {
             throw new RuntimeException("Error parsing json "+json, e);
         }
+    }
+
+    static <T> CompletionStage<T> completedStage(T value) {
+        CompletableFuture<T> cf = new CompletableFuture<>();
+        cf.complete(value);
+        return cf;
+    }
+
+    static <T> CompletionStage<T> failedStage(Throwable throwable) {
+        CompletableFuture<T> cf = new CompletableFuture<>();
+        cf.completeExceptionally(throwable);
+        return cf;
     }
 }
