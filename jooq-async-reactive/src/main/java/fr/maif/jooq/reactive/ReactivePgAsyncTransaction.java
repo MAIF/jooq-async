@@ -60,7 +60,7 @@ public class ReactivePgAsyncTransaction extends AbstractReactivePgAsyncClient<Sq
                         cursor -> Mono.just(List.<QueryResult>empty())
                         .expand(results -> {
                             if (first.getAndSet(false) || cursor.hasMore()) {
-                                return Mono.fromCompletionStage(cursor.read(500).map(rs ->
+                                return Mono.fromCompletionStage(cursor.read(fetchSize).map(rs ->
                                         List.ofAll(rs)
                                                 .map(ReactiveRowQueryResult::new)
                                                 .map(r -> (QueryResult)r)

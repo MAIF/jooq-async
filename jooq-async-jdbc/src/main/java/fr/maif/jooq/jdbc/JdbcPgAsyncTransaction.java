@@ -69,7 +69,7 @@ public class JdbcPgAsyncTransaction extends AbstractJdbcPgAsyncClient implements
     @Override
     public <Q extends Record> Publisher<QueryResult> stream(Integer fetchSize, Function<DSLContext, ? extends ResultQuery<Q>> queryFunction) {
         return Flux
-                .fromIterable(() -> queryFunction.apply(client).stream().iterator())
+                .fromIterable(() -> queryFunction.apply(client).fetchSize(fetchSize).stream().iterator())
                 .publishOn(Schedulers.parallel())
                 .map(JooqQueryResult::new);
     }
