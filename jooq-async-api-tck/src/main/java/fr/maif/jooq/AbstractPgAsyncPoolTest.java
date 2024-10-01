@@ -22,6 +22,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 import reactor.core.publisher.Flux;
 
@@ -41,7 +42,9 @@ import static org.jooq.impl.SQLDataType.TIMESTAMP;
 
 public abstract class AbstractPgAsyncPoolTest {
 
-    private final PostgreSQLContainer<?> postgreSQLContainer = new PostgreSQLContainer<>(DockerImageName.parse("postgres").withTag("14"));
+    private final PostgreSQLContainer<?> postgreSQLContainer = new PostgreSQLContainer<>(DockerImageName.parse("postgres")
+            .withTag("14"))
+            .waitingFor(Wait.forListeningPort());
 
     private final static ObjectMapper mapper = new ObjectMapper();
     private PgAsyncPool pgAsyncPool;
