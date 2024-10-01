@@ -6,6 +6,7 @@ import fr.maif.jooq.PgAsyncTransaction;
 import fr.maif.jooq.QueryResult;
 import io.vavr.concurrent.Future;
 import io.vertx.pgclient.PgPool;
+import io.vertx.sqlclient.Pool;
 import io.vertx.sqlclient.TransactionRollbackException;
 import org.jooq.Configuration;
 import org.jooq.DSLContext;
@@ -20,9 +21,9 @@ import java.util.function.Function;
 
 import static fr.maif.jooq.reactive.FutureConversions.fromVertx;
 
-public class ReactivePgAsyncPool extends AbstractReactivePgAsyncClient<PgPool> implements PgAsyncPool {
+public class ReactivePgAsyncPool extends AbstractReactivePgAsyncClient<Pool> implements PgAsyncPool {
 
-    public ReactivePgAsyncPool(PgPool client, Configuration configuration) {
+    public ReactivePgAsyncPool(Pool client, Configuration configuration) {
         super(client, configuration);
     }
 

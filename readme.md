@@ -78,7 +78,11 @@ PgConnectOptions options = new PgConnectOptions()
         .setPassword(password);
 PoolOptions poolOptions = new PoolOptions().setMaxSize(10);
 Vertx vertx = Vertx.vertx();
-PgPool client = PgPool.pool(vertx, options, poolOptions);
+Pool client = PgBuilder.pool()
+        .using(vertx)
+        .connectingTo(options)
+        .with(poolOptions)
+        .build();
 
 PgAsyncPool reactivePgAsyncPool = new ReactivePgAsyncPool(client, jooqConfig);
 ```
