@@ -2,12 +2,9 @@ package fr.maif.jooq.reactor;
 
 import fr.maif.jooq.PgAsyncPoolGetter;
 import fr.maif.jooq.reactive.ReactivePgAsyncPool;
-import fr.maif.jooq.reactor.impl.ReactorPgAsyncClient;
 import fr.maif.jooq.reactor.impl.ReactorPgAsyncPool;
-import io.vertx.pgclient.PgPool;
-import org.jooq.Configuration;
-
 import io.vertx.sqlclient.Pool;
+import org.jooq.Configuration;
 import reactor.core.publisher.Mono;
 
 import java.util.function.Function;

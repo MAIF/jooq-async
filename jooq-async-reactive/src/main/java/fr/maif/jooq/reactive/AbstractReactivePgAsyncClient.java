@@ -7,8 +7,6 @@ import com.fasterxml.jackson.databind.node.*;
 import fr.maif.jooq.PgAsyncClient;
 import fr.maif.jooq.QueryResult;
 import io.vavr.collection.List;
-import io.vavr.concurrent.Future;
-import io.vavr.concurrent.Promise;
 import io.vavr.control.Option;
 import io.vavr.control.Try;
 import io.vertx.core.AsyncResult;
@@ -19,9 +17,9 @@ import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
 import io.vertx.sqlclient.SqlClient;
 import io.vertx.sqlclient.Tuple;
-import io.vertx.sqlclient.impl.ArrayTuple;
-import org.jooq.*;
+import io.vertx.sqlclient.internal.ArrayTuple;
 import org.jooq.Record;
+import org.jooq.*;
 import org.jooq.conf.ParamType;
 import org.jooq.exception.TooManyRowsException;
 import org.jooq.impl.DSL;
@@ -32,6 +30,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
@@ -39,8 +38,6 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import static fr.maif.jooq.reactive.FutureConversions.fromVertx;
-import static io.vavr.API.*;
-import static io.vavr.Predicates.instanceOf;
 import static java.util.Objects.isNull;
 
 public abstract class AbstractReactivePgAsyncClient<Client extends SqlClient> implements PgAsyncClient {
@@ -115,7 +112,6 @@ public abstract class AbstractReactivePgAsyncClient<Client extends SqlClient> im
         if (values.isEmpty()) {
             return completedStage(0L);
         }
-        CompletableFuture<RowSet<Row>> rowFuture = new CompletableFuture<>();
         try {
             Query query = queryFunction.apply(DSL.using(configuration));
             log(query);
@@ -138,11 +134,20 @@ public abstract class AbstractReactivePgAsyncClient<Client extends SqlClient> im
                             return Tuple.of(l.head(), l.tail().toJavaArray(Object[]::new));
                         }
                     });
-            client.preparedQuery(preparedQuery).executeBatch(bindValues.toJavaList(), toCompletionHandler(rowFuture));
+            return client.preparedQuery(preparedQuery).executeBatch(bindValues.toJavaList())
+                    .toCompletionStage()
+                    .thenApply(r -> {
+                        if (Objects.nonNull(r) && Objects.nonNull(r.rowCount())) {
+                            return Long.valueOf(r.rowCount());
+                        }
+                        return 0L;
+                    })
+            ;
         } catch (Exception e) {
+            CompletableFuture<Long> rowFuture = new CompletableFuture<>();
             rowFuture.completeExceptionally(e);
+            return rowFuture;
         }
-        return rowFuture.thenApply(r -> Option(r).flatMap(c -> Option(c.rowCount())).map(Integer::longValue).getOrElse(0L));
     }
 
     protected static <U> Handler<AsyncResult<U>> toCompletionHandler(CompletableFuture<U> future) {
@@ -229,31 +234,23 @@ public abstract class AbstractReactivePgAsyncClient<Client extends SqlClient> im
     }
 
     private Object jacksonToVertx(JsonNode json) {
-        return Match(json).of(
-                Case($(instanceOf(ObjectNode.class)), node -> {
-                    Map<String, Object> t = mapper.convertValue(node, new TypeReference<Map<String, Object>>() {
-                    });
-                    return new JsonObject(t);
-                }),
-                Case($(instanceOf(ArrayNode.class)), array -> {
-                    java.util.List<Object> t = mapper.convertValue(array, new TypeReference<java.util.List<Object>>() {
-                    });
-                    return new JsonArray(t);
-                }),
-                Case($(instanceOf(NullNode.class)), booleanNode ->
-                        Tuple.JSON_NULL
-                ),
-                Case($(instanceOf(BooleanNode.class)), booleanNode ->
-                        booleanNode.booleanValue()
-                ),
-                Case($(instanceOf(TextNode.class)), textNode ->
-                        textNode.textValue()
-                ),
-                Case($(instanceOf(NumericNode.class)), numericNode ->
-                        numericNode.numberValue()
-                ),
-                Case($(), other -> other)
-        );
+        return switch (json) {
+            case ObjectNode node -> {
+                Map<String, Object> t = mapper.convertValue(node, new TypeReference<Map<String, Object>>() {
+                });
+                yield new JsonObject(t);
+            }
+            case ArrayNode array -> {
+                java.util.List<Object> t = mapper.convertValue(array, new TypeReference<java.util.List<Object>>() {
+                });
+                yield new JsonArray(t);
+            }
+            case NullNode nullNode -> Tuple.JSON_NULL;
+            case BooleanNode booleanNode -> booleanNode.booleanValue();
+            case TextNode textNode -> textNode.textValue();
+            case NumericNode numericNode -> numericNode.numberValue();
+            default -> json;
+        };
     }
 
     protected String toPreparedQuery(Query query) {

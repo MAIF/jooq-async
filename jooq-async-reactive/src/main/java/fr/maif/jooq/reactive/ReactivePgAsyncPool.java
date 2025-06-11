@@ -4,8 +4,6 @@ import fr.maif.jooq.PgAsyncConnection;
 import fr.maif.jooq.PgAsyncPool;
 import fr.maif.jooq.PgAsyncTransaction;
 import fr.maif.jooq.QueryResult;
-import io.vavr.concurrent.Future;
-import io.vertx.pgclient.PgPool;
 import io.vertx.sqlclient.Pool;
 import io.vertx.sqlclient.TransactionRollbackException;
 import org.jooq.Configuration;
