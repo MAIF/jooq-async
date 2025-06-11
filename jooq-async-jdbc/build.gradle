@@ -11,7 +11,7 @@ dependencies {
 
     implementation("io.vavr:vavr:$vavrVersion")
     implementation("org.jooq:jooq:$_jooqVersion")
-    implementation("io.projectreactor:reactor-core:3.4.23")
+    implementation("io.projectreactor:reactor-core:$reactorVersion")
     implementation("org.slf4j:slf4j-api:1.7.26")
 
     testImplementation project(':jooq-async-api-tck')
@@ -21,6 +21,6 @@ dependencies {
     testImplementation("org.assertj:assertj-core:3.10.0")
     testImplementation("org.postgresql:postgresql:42.2.5")
     testImplementation("org.mockito:mockito-core:2.22.0")
-    testImplementation("org.testcontainers:testcontainers:1.17.3")
-    testImplementation("org.testcontainers:postgresql:1.17.3")
+    testImplementation("org.testcontainers:testcontainers:${testContainers}")
+    testImplementation("org.testcontainers:postgresql:${testContainers}")
 }
