@@ -22,16 +22,16 @@ subprojects {
         withSourcesJar()
         withJavadocJar()
         toolchain {
-            languageVersion = JavaLanguageVersion.of(17)
+            languageVersion = JavaLanguageVersion.of(21)
         }
     }
     ext {
-        jacksonVersion = "2.10.5"
-        akkaVersion = "2.6.6"
-        vavrVersion = "0.10.0"
-        _jooqVersion = "3.19.5"
+        jacksonVersion = "2.18.4"
+        vavrVersion = "0.10.6"
+        _jooqVersion = "3.20.4"
         scalaVersion = "2.13"
-        reactorVersion = "3.6.3"
+        reactorVersion = "3.7.7"
+        testContainers = "1.21.1"
     }
     test {
         testLogging {

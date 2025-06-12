@@ -2,19 +2,17 @@ package fr.maif.jooq;
 
 import fr.maif.jooq.reactive.ReactivePgAsyncPool;
 import io.vertx.core.Vertx;
+import io.vertx.core.net.ClientSSLOptions;
 import io.vertx.pgclient.PgBuilder;
 import io.vertx.pgclient.PgConnectOptions;
-import io.vertx.pgclient.PgPool;
+import io.vertx.pgclient.SslMode;
 import io.vertx.sqlclient.Pool;
 import io.vertx.sqlclient.PoolOptions;
 import org.jooq.Configuration;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DefaultConfiguration;
 import org.junit.After;
-import org.junit.Test;
 import org.testcontainers.containers.PostgreSQLContainer;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 public class ReactiveAsyncPoolTest extends AbstractPgAsyncPoolTest {
 
@@ -37,7 +35,8 @@ public class ReactiveAsyncPoolTest extends AbstractPgAsyncPoolTest {
                 .setHost(host)
                 .setDatabase(databaseName)
                 .setUser(username)
-                .setPassword(password);
+                .setPassword(password)
+                .setSslMode(SslMode.DISABLE);
         PoolOptions poolOptions = new PoolOptions().setMaxSize(3);
         pool = PgBuilder.pool()
                 .using(vertx)

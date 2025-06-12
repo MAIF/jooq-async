@@ -11,12 +11,12 @@ dependencies {
 
     implementation("io.vavr:vavr:$vavrVersion")
     implementation("org.jooq:jooq:$_jooqVersion")
-    implementation("io.projectreactor:reactor-core:3.4.23")
+    implementation("io.projectreactor:reactor-core:$reactorVersion")
     implementation("com.fasterxml.jackson.core:jackson-databind:$jacksonVersion")
-    implementation("io.vavr:vavr-jackson:$vavrVersion")
+    implementation("io.vavr:vavr-jackson:0.10.3")
     implementation("com.novocode:junit-interface:0.11")
     implementation("org.assertj:assertj-core:3.10.0")
     implementation("org.postgresql:postgresql:42.2.5")
     implementation("org.mockito:mockito-core:2.22.0")
-    implementation("org.testcontainers:postgresql:1.16.3")
+    implementation("org.testcontainers:postgresql:${testContainers}")
 }
