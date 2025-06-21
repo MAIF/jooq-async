@@ -1,4 +1,4 @@
-package fr.maif.jooq.reactive;
+package fr.maif.jooq.vertx;
 
 
 import java.util.concurrent.CompletionStage;

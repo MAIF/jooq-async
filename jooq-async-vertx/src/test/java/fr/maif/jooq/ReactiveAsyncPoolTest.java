@@ -1,8 +1,7 @@
 package fr.maif.jooq;
 
-import fr.maif.jooq.reactive.ReactivePgAsyncPool;
+import fr.maif.jooq.vertx.ReactivePgAsyncPool;
 import io.vertx.core.Vertx;
-import io.vertx.core.net.ClientSSLOptions;
 import io.vertx.pgclient.PgBuilder;
 import io.vertx.pgclient.PgConnectOptions;
 import io.vertx.pgclient.SslMode;

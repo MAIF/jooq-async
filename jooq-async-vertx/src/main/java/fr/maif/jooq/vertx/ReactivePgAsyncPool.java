@@ -1,4 +1,4 @@
-package fr.maif.jooq.reactive;
+package fr.maif.jooq.vertx;
 
 import fr.maif.jooq.PgAsyncConnection;
 import fr.maif.jooq.PgAsyncPool;
@@ -17,7 +17,7 @@ import reactor.core.publisher.Mono;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
-import static fr.maif.jooq.reactive.FutureConversions.fromVertx;
+import static fr.maif.jooq.vertx.FutureConversions.fromVertx;
 
 public class ReactivePgAsyncPool extends AbstractReactivePgAsyncClient<Pool> implements PgAsyncPool {
 

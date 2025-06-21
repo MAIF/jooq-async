@@ -1,19 +1,15 @@
-package fr.maif.jooq.reactive;
+package fr.maif.jooq.vertx;
 
 import fr.maif.jooq.PgAsyncTransaction;
 import fr.maif.jooq.QueryResult;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;
-import io.vavr.concurrent.Future;
 import io.vertx.sqlclient.Cursor;
 import io.vertx.sqlclient.SqlConnection;
 import io.vertx.sqlclient.Transaction;
-import org.jooq.Configuration;
-import org.jooq.DSLContext;
-import org.jooq.Query;
 import org.jooq.Record;
-import org.jooq.ResultQuery;
+import org.jooq.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -23,7 +19,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
-import static fr.maif.jooq.reactive.FutureConversions.fromVertx;
+import static fr.maif.jooq.vertx.FutureConversions.fromVertx;
 import static java.util.function.Function.identity;
 
 public class ReactivePgAsyncTransaction extends AbstractReactivePgAsyncClient<SqlConnection> implements PgAsyncTransaction {

@@ -28,7 +28,7 @@ subprojects {
     ext {
         jacksonVersion = "2.18.4"
         vavrVersion = "0.10.6"
-        _jooqVersion = "3.20.4"
+        _jooqVersion = "3.20.5"
         scalaVersion = "2.13"
         reactorVersion = "3.7.7"
         testContainers = "1.21.1"

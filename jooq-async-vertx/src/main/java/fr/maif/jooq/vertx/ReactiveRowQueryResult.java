@@ -1,4 +1,4 @@
-package fr.maif.jooq.reactive;
+package fr.maif.jooq.vertx;
 
 import fr.maif.jooq.QueryResult;
 import io.vertx.core.buffer.Buffer;

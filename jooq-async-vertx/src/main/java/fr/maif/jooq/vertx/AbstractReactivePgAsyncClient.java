@@ -1,4 +1,4 @@
-package fr.maif.jooq.reactive;
+package fr.maif.jooq.vertx;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -37,7 +37,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import static fr.maif.jooq.reactive.FutureConversions.fromVertx;
+import static fr.maif.jooq.vertx.FutureConversions.fromVertx;
 import static java.util.Objects.isNull;
 
 public abstract class AbstractReactivePgAsyncClient<Client extends SqlClient> implements PgAsyncClient {
@@ -142,7 +142,7 @@ public abstract class AbstractReactivePgAsyncClient<Client extends SqlClient> im
                         }
                         return 0L;
                     })
-            ;
+                    ;
         } catch (Exception e) {
             CompletableFuture<Long> rowFuture = new CompletableFuture<>();
             rowFuture.completeExceptionally(e);
