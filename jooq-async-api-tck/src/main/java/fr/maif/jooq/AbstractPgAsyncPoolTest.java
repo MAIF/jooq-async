@@ -43,7 +43,7 @@ import static org.jooq.impl.SQLDataType.TIMESTAMP;
 public abstract class AbstractPgAsyncPoolTest {
 
     private final PostgreSQLContainer<?> postgreSQLContainer = new PostgreSQLContainer<>(DockerImageName.parse("postgres")
-            .withTag("14"))
+            .withTag("15"))
             .waitingFor(Wait.forListeningPort());
 
     private final static ObjectMapper mapper = new ObjectMapper();
