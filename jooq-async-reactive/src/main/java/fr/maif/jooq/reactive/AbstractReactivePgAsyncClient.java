@@ -1,9 +1,5 @@
 package fr.maif.jooq.reactive;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.*;
 import fr.maif.jooq.PgAsyncClient;
 import fr.maif.jooq.QueryResult;
 import io.vavr.collection.List;
@@ -26,6 +22,10 @@ import org.jooq.impl.DSL;
 import org.jooq.impl.SQLDataType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.*;
 
 import java.io.IOException;
 import java.sql.Timestamp;
@@ -247,7 +247,7 @@ public abstract class AbstractReactivePgAsyncClient<Client extends SqlClient> im
             }
             case NullNode nullNode -> Tuple.JSON_NULL;
             case BooleanNode booleanNode -> booleanNode.booleanValue();
-            case TextNode textNode -> textNode.textValue();
+            case StringNode textNode -> textNode.stringValue();
             case NumericNode numericNode -> numericNode.numberValue();
             default -> json;
         };
@@ -265,11 +265,7 @@ public abstract class AbstractReactivePgAsyncClient<Client extends SqlClient> im
     }
 
     JsonNode readJson(String json) {
-        try {
-            return mapper.readTree(json);
-        } catch (IOException e) {
-            throw new RuntimeException("Error parsing json "+json, e);
-        }
+        return mapper.readTree(json);
     }
 
     static <T> CompletionStage<T> completedStage(T value) {

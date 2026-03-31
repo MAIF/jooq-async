@@ -1,28 +1,22 @@
 package fr.maif.jooq;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectWriter;
-import com.fasterxml.jackson.databind.node.NullNode;
 import org.jooq.Converter;
 import org.jooq.JSONB;
-
-import java.io.IOException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectWriter;
+import tools.jackson.databind.node.NullNode;
 
 public class JsonConverter implements Converter<JSONB, JsonNode> {
 
     private final static ObjectMapper mapper = new ObjectMapper();
     private final static ObjectWriter writer = mapper.writerFor(JsonNode.class);
+
     @Override
     public JsonNode from(JSONB databaseObject) {
 
         if (databaseObject != null && databaseObject.data() != null) {
-            try {
-                return mapper.readTree(databaseObject.data());
-            } catch (IOException e) {
-                throw new RuntimeException("Error reading json"+databaseObject.data(), e);
-            }
+            return mapper.readTree(databaseObject.data());
         } else {
             return NullNode.getInstance();
         }
@@ -30,11 +24,7 @@ public class JsonConverter implements Converter<JSONB, JsonNode> {
 
     @Override
     public JSONB to(JsonNode userObject) {
-        try {
-            return JSONB.valueOf(writer.writeValueAsString(userObject));
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("Error writing json"+userObject, e);
-        }
+        return JSONB.valueOf(writer.writeValueAsString(userObject));
     }
 
     @Override

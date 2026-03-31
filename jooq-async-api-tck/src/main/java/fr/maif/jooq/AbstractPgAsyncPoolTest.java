@@ -1,8 +1,9 @@
 package fr.maif.jooq;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.List;
 import io.vavr.collection.Map;
@@ -46,12 +47,11 @@ public abstract class AbstractPgAsyncPoolTest {
             .withTag("14"))
             .waitingFor(Wait.forListeningPort());
 
-    private final static ObjectMapper mapper = new ObjectMapper();
-    private PgAsyncPool pgAsyncPool;
+    private final static ObjectMapper mapper = JsonMapper.builder()
+            .addModule(new VavrModule())
+            .build();
 
-    {
-        mapper.registerModule(new VavrModule());
-    }
+    private PgAsyncPool pgAsyncPool;
 
     protected PGSimpleDataSource dataSource;
     protected DSLContext dslContext;
