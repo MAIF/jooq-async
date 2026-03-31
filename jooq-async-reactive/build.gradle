@@ -11,10 +11,10 @@ dependencies {
 
     implementation("io.vavr:vavr:$vavrVersion")
     implementation("org.jooq:jooq:$_jooqVersion")
-    implementation("com.fasterxml.jackson.core:jackson-databind:$jacksonVersion")
+    implementation("tools.jackson.core:jackson-databind:$jacksonVersion")
     implementation("io.projectreactor:reactor-core:$reactorVersion")
     implementation("org.slf4j:slf4j-api:1.7.26")
-    implementation("io.vertx:vertx-pg-client:5.0.0")
+    implementation("io.vertx:vertx-pg-client:5.0.10")
 
     testImplementation project(':jooq-async-api-tck')
     testImplementation("com.novocode:junit-interface:0.11")

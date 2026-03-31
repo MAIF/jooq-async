@@ -26,11 +26,11 @@ subprojects {
         }
     }
     ext {
-        jacksonVersion = "2.18.4"
-        vavrVersion = "0.10.6"
-        _jooqVersion = "3.20.4"
+        jacksonVersion = "3.1.1"
+        vavrVersion = "1.0.1"
+        _jooqVersion = "3.21.1"
         scalaVersion = "2.13"
-        reactorVersion = "3.7.7"
+        reactorVersion = "3.8.4"
         testContainers = "1.21.1"
     }
     test {
